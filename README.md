@@ -11,8 +11,33 @@ A WhatsApp bot inspired by Knight-Bot, powered by Baileys.
 - Mini games (tebakangka, tebakkata, quiz, suit, math, tictactoe)
 - **Custom Welcome/Goodbye messages** (per group, with @user and @group placeholders)
 - **Auto-Responder** (custom triggers and replies per group)
+- **Random Images:** `.cat`, `.dog`, `.waifu`
+- **Polls/Voting:** `.poll`, `.vote`, `.pollresult`
+- **Portfolio Tracking:** `.portfolio add/remove/show <symbol>`
+- **Price Alerts:** `.alert <symbol> <price>`, `.alert list/remove <symbol>`
+- **Top Gainers/Losers:** `.topgainers`, `.toplosers`
+- **Scheduled Messages:** `.schedule <HH:MM> <msg>`, `.schedule list/remove <id>`
+- **Birthday Reminders:** `.birthday add/remove/list <MM-DD>`
 - Crypto info & TP/SL (.coin)
 - Points & leaderboard system
+
+## Example Usage
+- `.cat` — Random cat image
+- `.dog` — Random dog image
+- `.waifu` — Random waifu image
+- `.poll Best coin?|BTC|ETH|DOGE` — Start a poll
+- `.vote BTC` — Vote in poll
+- `.pollresult` — Show poll results
+- `.portfolio add btc` — Add BTC to your portfolio
+- `.portfolio show` — Show your portfolio
+- `.alert btc 70000` — Alert when BTC hits $70,000
+- `.alert list` — List your alerts
+- `.topgainers` — Show top 5 crypto gainers
+- `.toplosers` — Show top 5 crypto losers
+- `.schedule 08:00 Good morning group!` — Schedule a message
+- `.schedule list` — List scheduled messages
+- `.birthday add 12-25` — Add your birthday
+- `.birthday list` — List all birthdays
 
 ## Setup
 

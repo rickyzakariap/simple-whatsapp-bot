@@ -8,6 +8,10 @@ const config = require('./config');
 const { addPoint } = require('./src/commands/main/points');
 const welcomeCmd = require('./src/commands/main/welcome');
 const autoresponderCmd = require('./src/commands/main/autoresponder');
+const alertPath = path.join(__dirname, 'alerts.json');
+const schedulePath = path.join(__dirname, 'schedules.json');
+const birthdayPath = path.join(__dirname, 'birthdays.json');
+const axios = require('axios');
 
 // Load commands with hot-reload
 const commands = new Map();
@@ -31,6 +35,58 @@ chokidar.watch(commandsDir).on('all', (event, filePath) => {
     loadAllCommands();
   }
 });
+
+function loadJson(p) { if (!fs.existsSync(p)) return {}; return JSON.parse(fs.readFileSync(p)); }
+function saveJson(p, d) { fs.writeFileSync(p, JSON.stringify(d, null, 2)); }
+
+async function pollBackground(sock) {
+  // Price Alerts
+  setInterval(async () => {
+    const db = loadJson(alertPath);
+    for (const user in db) {
+      for (const alert of db[user]) {
+        try {
+          const { data } = await axios.get(`https://api.coingecko.com/api/v3/coins/markets`, { params: { vs_currency: 'usd', ids: '', symbols: alert.symbol, per_page: 1 } });
+          const coin = data.find(c => c.symbol.toLowerCase() === alert.symbol);
+          if (coin && coin.current_price >= alert.price) {
+            await sock.sendMessage(user, { text: `🚨 ${coin.name} (${coin.symbol.toUpperCase()}) hit $${coin.current_price} (alert: $${alert.price})` });
+            db[user] = db[user].filter(a => a !== alert);
+            saveJson(alertPath, db);
+          }
+        } catch {}
+      }
+    }
+  }, 60 * 1000);
+  // Scheduled Messages
+  setInterval(async () => {
+    const db = loadJson(schedulePath);
+    const now = new Date();
+    const hhmm = now.toTimeString().slice(0,5);
+    for (const jid in db) {
+      db[jid] = db[jid] || [];
+      for (const s of db[jid]) {
+        if (s.time === hhmm) {
+          await sock.sendMessage(jid, { text: `[Scheduled] ${s.message}` });
+        }
+      }
+    }
+  }, 60 * 1000);
+  // Birthday Reminders
+  setInterval(async () => {
+    const db = loadJson(birthdayPath);
+    const now = new Date();
+    const mmdd = ('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
+    for (const user in db) {
+      if (db[user] === mmdd) {
+        const jid = user.includes('@g.us') ? user : null;
+        const mention = user;
+        if (jid) {
+          await sock.sendMessage(jid, { text: `🎂 Selamat ulang tahun @${mention.split('@')[0]}!`, mentions: [mention] });
+        }
+      }
+    }
+  }, 60 * 1000);
+}
 
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState(config.sessionName);
@@ -101,6 +157,8 @@ async function startBot() {
       }
     }
   });
+
+  await pollBackground(sock);
 }
 
 startBot();
