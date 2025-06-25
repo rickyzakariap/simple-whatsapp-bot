@@ -19,10 +19,32 @@ module.exports = {
 • .menu  — Show this menu
 • .owner — Show owner info
 • .sticker (reply or URL) — Image/video or image URL to sticker
-• .coin <symbol|name> — Crypto info & TP/SL
+• .toimg — Convert sticker to image
+• .tomp3 — Convert video/audio to mp3
 • .addtrigger <trigger>|<response> — Add auto-reply (admin)
 • .deltrigger <trigger> — Delete auto-reply (admin)
 • .listtriggers — List auto-replies
+• .schedule <HH:MM> <msg> — Schedule message
+• .schedule list/remove <id> — Manage schedules
+• .birthday add/remove/list <MM-DD> — Birthday reminders
+
+*🎨 Fun & Images*
+• .cat — Random cat image
+• .dog — Random dog image
+• .waifu — Random waifu image
+
+*📊 Polls & Voting*
+• .poll <q|opt1|opt2> — Start a poll
+• .vote <option> — Vote in poll
+• .pollresult — Show poll results
+
+*💰 Crypto & Finance*
+• .coin <symbol|name> — Crypto info & TP/SL
+• .portfolio add/remove/show <symbol> — Track your coins
+• .alert <symbol> <price> — Set price alert
+• .alert list/remove <symbol> — Manage alerts
+• .topgainers — Top 5 crypto gainers
+• .toplosers — Top 5 crypto losers
 
 *👥 Group Management*
 • .add <number>         — Add member (admin)
