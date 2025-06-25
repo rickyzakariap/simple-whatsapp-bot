@@ -1,0 +1,25 @@
+{
+  "name": "ongbak-bot",
+  "version": "1.0.0",
+  "description": "WhatsApp Bot inspired by Knight-Bot, powered by Baileys.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "whatsapp-bot",
+    "baileys",
+    "ongbak-bot"
+  ],
+  "author": "Ong-Bak",
+  "license": "MIT",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.18",
+    "axios": "^1.8.4",
+    "chalk": "^4.1.2",
+    "chokidar": "^4.0.3",
+    "ffmpeg-static": "^5.2.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
