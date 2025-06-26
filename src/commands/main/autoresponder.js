@@ -84,4 +84,94 @@ module.exports = {
       return {};
     }
   }
+};
+
+// Create separate command modules for each subcommand
+module.exports.addtrigger = {
+  name: 'addtrigger',
+  description: 'Add auto-reply trigger (admin only)',
+  usage: '.addtrigger <trigger>|<response>',
+  async execute(sock, msg, args) {
+    try {
+      const id = msg.key.remoteJid;
+      const isAdmin = msg.participant || msg.key.participant;
+      const db = load();
+      
+      if (!isAdmin) return sock.sendMessage(id, { text: 'Admin only.' }, { quoted: msg });
+      
+      const [trigger, ...respArr] = args.join(' ').split('|');
+      if (!trigger || !respArr.length) return sock.sendMessage(id, { text: 'Usage: .addtrigger <trigger>|<response>' }, { quoted: msg });
+      
+      // Input validation
+      if (trigger.length < 1 || trigger.length > 100) {
+        return sock.sendMessage(id, { text: 'Trigger must be 1-100 characters long.' }, { quoted: msg });
+      }
+      
+      const response = respArr.join('|').trim();
+      if (response.length < 1 || response.length > 1000) {
+        return sock.sendMessage(id, { text: 'Response must be 1-1000 characters long.' }, { quoted: msg });
+      }
+      
+      db[id] = db[id] || {};
+      db[id][trigger.toLowerCase()] = response;
+      save(db);
+      return sock.sendMessage(id, { text: '✅ Trigger added successfully!' }, { quoted: msg });
+    } catch (error) {
+      console.error('Addtrigger command error:', error);
+      return sock.sendMessage(msg.key.remoteJid, { text: '❌ Error: Failed to add trigger.' }, { quoted: msg });
+    }
+  }
+};
+
+module.exports.deltrigger = {
+  name: 'deltrigger',
+  description: 'Delete auto-reply trigger (admin only)',
+  usage: '.deltrigger <trigger>',
+  async execute(sock, msg, args) {
+    try {
+      const id = msg.key.remoteJid;
+      const isAdmin = msg.participant || msg.key.participant;
+      const db = load();
+      
+      if (!isAdmin) return sock.sendMessage(id, { text: 'Admin only.' }, { quoted: msg });
+      
+      const trigger = args.join(' ').toLowerCase();
+      if (!trigger) return sock.sendMessage(id, { text: 'Usage: .deltrigger <trigger>' }, { quoted: msg });
+      
+      if (!db[id] || !db[id][trigger]) return sock.sendMessage(id, { text: '❌ Trigger not found.' }, { quoted: msg });
+      
+      delete db[id][trigger];
+      save(db);
+      return sock.sendMessage(id, { text: '✅ Trigger deleted successfully!' }, { quoted: msg });
+    } catch (error) {
+      console.error('Deltrigger command error:', error);
+      return sock.sendMessage(msg.key.remoteJid, { text: '❌ Error: Failed to delete trigger.' }, { quoted: msg });
+    }
+  }
+};
+
+module.exports.listtriggers = {
+  name: 'listtriggers',
+  description: 'List all auto-reply triggers',
+  usage: '.listtriggers',
+  async execute(sock, msg, args) {
+    try {
+      const id = msg.key.remoteJid;
+      const db = load();
+      
+      if (!db[id] || !Object.keys(db[id]).length) {
+        return sock.sendMessage(id, { text: '📝 No triggers set in this chat.' }, { quoted: msg });
+      }
+      
+      let text = '*📝 Auto-Responder Triggers:*\n\n';
+      Object.entries(db[id]).forEach(([k, v], i) => { 
+        text += `${i + 1}. *"${k}"* → "${v}"\n\n`; 
+      });
+      
+      return sock.sendMessage(id, { text }, { quoted: msg });
+    } catch (error) {
+      console.error('Listtriggers command error:', error);
+      return sock.sendMessage(msg.key.remoteJid, { text: '❌ Error: Failed to list triggers.' }, { quoted: msg });
+    }
+  }
 }; 

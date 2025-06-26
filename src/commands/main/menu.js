@@ -19,6 +19,7 @@ module.exports = {
 • .menu  — Show this menu
 • .owner — Show owner info
 • .sticker (reply or URL) — Image/video or image URL to sticker
+• .pinterest <search> — Search images on Pinterest
 • .coin <symbol|name> — Crypto info & TP/SL
 • .addtrigger <trigger>|<response> — Add auto-reply (admin)
 • .deltrigger <trigger> — Delete auto-reply (admin)
