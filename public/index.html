@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Changer - OngBak Bot</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .content {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px;
+            background: #f9f9f9;
+        }
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e3f2fd;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .btn:hover { background: #5a6fd8; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .effects {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .effect {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .effect:hover { background: #f0f0f0; }
+        .effect.active { background: #667eea; color: white; }
+        .preview img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @media (max-width: 768px) {
+            .content { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖼️ Image Changer</h1>
+            <p>Transform your images with amazing effects - Powered by OngBak Bot</p>
+        </div>
+        
+        <div class="content">
+            <div class="upload-area" id="uploadArea">
+                <h3>📁 Upload Image</h3>
+                <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                <button class="btn" onclick="document.getElementById('fileInput').click()">Choose Image</button>
+                <p>or drag and drop here</p>
+                
+                <div class="effects" id="effects">
+                    <div class="effect" data-effect="grayscale">Grayscale</div>
+                    <div class="effect" data-effect="sepia">Sepia</div>
+                    <div class="effect" data-effect="invert">Invert</div>
+                    <div class="effect" data-effect="blur">Blur</div>
+                    <div class="effect" data-effect="sharpen">Sharpen</div>
+                    <div class="effect" data-effect="brightness">Brightness</div>
+                    <div class="effect" data-effect="contrast">Contrast</div>
+                    <div class="effect" data-effect="saturation">Saturation</div>
+                    <div class="effect" data-effect="resize">Resize</div>
+                    <div class="effect" data-effect="rotate">Rotate</div>
+                    <div class="effect" data-effect="flip">Flip</div>
+                    <div class="effect" data-effect="flop">Mirror</div>
+                    <div class="effect" data-effect="darken">Darken</div>
+                    <div class="effect" data-effect="darken-skin">Darken Skin</div>
+                </div>
+                
+                <div class="intensity-control" id="intensityControl" style="display:none;">
+                    <label for="intensitySlider">Intensity: <span id="intensityValue">5</span></label>
+                    <input type="range" id="intensitySlider" class="intensity-slider" min="1" max="20" value="5">
+                </div>
+                
+                <button class="btn" id="processBtn" disabled>Process Image</button>
+            </div>
+            
+            <div class="preview">
+                <h3>🖼️ Preview</h3>
+                <img id="previewImg" style="display: none;">
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Processing...</p>
+                </div>
+                
+                <div id="result" style="display: none;">
+                    <h3>✨ Result</h3>
+                    <img id="resultImg">
+                    <div>
+                        <a id="downloadBtn" class="btn">Download</a>
+                        <a id="whatsappBtn" class="btn">Send to WhatsApp</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+        let selectedEffect = null;
+
+        // File handling
+        document.getElementById('fileInput').addEventListener('change', handleFile);
+        
+        // Drag and drop
+        const uploadArea = document.getElementById('uploadArea');
+        uploadArea.addEventListener('dragover', e => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+        uploadArea.addEventListener('drop', e => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFile({ target: { files: e.dataTransfer.files } });
+            }
+        });
+
+        // Effect selection
+        document.querySelectorAll('.effect').forEach(effect => {
+            effect.addEventListener('click', () => {
+                document.querySelectorAll('.effect').forEach(e => e.classList.remove('active'));
+                effect.classList.add('active');
+                selectedEffect = effect.dataset.effect;
+                // Show intensity for blur, brightness, contrast, saturation, darken, darken-skin
+                const needsIntensity = ['blur', 'brightness', 'contrast', 'saturation', 'darken', 'darken-skin'].includes(selectedEffect);
+                document.getElementById('intensityControl').style.display = needsIntensity ? 'block' : 'none';
+            });
+        });
+
+        // Intensity slider
+        document.getElementById('intensitySlider').addEventListener('input', (e) => {
+            document.getElementById('intensityValue').textContent = e.target.value;
+        });
+
+        // Process button
+        document.getElementById('processBtn').addEventListener('click', processImage);
+
+        function handleFile(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                selectedFile = file;
+                const reader = new FileReader();
+                reader.onload = e => {
+                    document.getElementById('previewImg').src = e.target.result;
+                    document.getElementById('previewImg').style.display = 'block';
+                    document.getElementById('processBtn').disabled = false;
+                    document.getElementById('result').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function processImage() {
+            if (!selectedFile || !selectedEffect) {
+                alert('Please select an image and an effect!');
+                return;
+            }
+
+            const loading = document.getElementById('loading');
+            const processBtn = document.getElementById('processBtn');
+            
+            loading.style.display = 'block';
+            processBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            formData.append('effect', selectedEffect);
+            // For darken effects, send intensity as a float between 0.1 and 1
+            if (selectedEffect === 'darken' || selectedEffect === 'darken-skin') {
+                const sliderVal = document.getElementById('intensitySlider').value;
+                const brightness = (11 - sliderVal) / 10; // 1 (no change) to 0.1 (very dark)
+                formData.append('intensity', brightness);
+            } else if (['blur', 'brightness', 'contrast', 'saturation'].includes(selectedEffect)) {
+                formData.append('intensity', document.getElementById('intensitySlider').value);
+            }
+
+            try {
+                const response = await fetch('/process-image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('resultImg').src = result.image;
+                    document.getElementById('result').style.display = 'block';
+                    
+                    // Setup download
+                    document.getElementById('downloadBtn').href = result.image;
+                    document.getElementById('downloadBtn').download = `processed-${selectedEffect}.jpg`;
+                    
+                    // Setup WhatsApp
+                    document.getElementById('whatsappBtn').href = `https://wa.me/?text=Check out my ${selectedEffect} image!`;
+                    document.getElementById('whatsappBtn').target = '_blank';
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to process image. Please try again.');
+            } finally {
+                loading.style.display = 'none';
+                processBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html> 

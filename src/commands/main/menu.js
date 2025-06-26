@@ -9,52 +9,52 @@ module.exports = {
     try {
       top = getLeaderboard(msg.key.remoteJid, 1);
       if (top.length) {
-        topText = `\n\n*🏆 Top Skor Grup:*\n1. @${top[0][0].split('@')[0]}: ${top[0][1]} poin`;
+        topText = `\n🏆 Top: @${top[0][0].split('@')[0]} (${top[0][1]} pts)`;
       }
     } catch {}
-    const menu = `*🌟 OngBak-Bot Command Menu 🌟*${topText}
+    
+    const menu = `🤖 *OngBak-Bot Menu*${topText}
 
-*🛠️ Utilities*
-• .ping  — Check bot response
-• .menu  — Show this menu
-• .owner — Show owner info
-• .sticker (reply or URL) — Image/video or image URL to sticker
-• .pinterest <search> — Search images on Pinterest
-• .coin <symbol|name> — Crypto info & TP/SL
-• .addtrigger <trigger>|<response> — Add auto-reply (admin)
-• .deltrigger <trigger> — Delete auto-reply (admin)
-• .listtriggers — List auto-replies
+📋 *Basic Commands*
+• .ping — Bot status
+• .menu — This menu
+• .owner — Owner info
+• .help — Command help
 
-*👥 Group Management*
-• .add <number>         — Add member (admin)
-• .kick @user           — Remove member (admin)
-• .promote @user        — Make admin (admin)
-• .demote @user         — Remove admin (admin)
-• .setdesc <desc>       — Set group description (admin)
-• .setsubject <name>    — Set group name (admin)
-• .link                 — Get group invite link (admin)
-• .mute                 — Mute group (admin)
-• .unmute               — Unmute group (admin)
-• .welcome              — Show welcome message
-• .goodbye              — Show goodbye message
-• .setwelcome <msg>     — Set welcome message (admin)
-• .setgoodbye <msg>     — Set goodbye message (admin)
-• .warn @user           — Warn member (admin)
-• .unwarn @user         — Remove warning (admin)
-• .tagall [msg]         — Mention all group members (admin)
+🎮 *Games*
+• .tebakangka — Guess number
+• .tebakkata — Word scramble  
+• .quiz — Trivia game
+• .suit — Rock paper scissors
+• .math — Math challenge
+• .tictactoe — Tic tac toe
 
-*👑 Owner Tools*
-• .broadcast <msg>      — Broadcast to all groups (owner)
+🖼️ *Image Editing*
+• .sticker — Convert to sticker
 
-*🎮 Mini Games*
-• .tebakangka [start|angka]   — Tebak Angka (Guess the Number)
-• .tebakkata [start|kata]     — Tebak Kata (Word Scramble)
-• .quiz [start|jawaban]       — Quiz/Trivia
-• .suit <batu|gunting|kertas> — Suit (Rock Paper Scissors)
-• .math [start|jawaban]       — Math Challenge
-• .tictactoe start/<posisi>   — Tic Tac Toe
+🛠️ *Tools*
+• .coin — Crypto info
+• .weather — Weather info
+• .points — Check points
 
-_Type .help <command> for details (if available)_`;
+👥 *Group Admin*
+• .add/.kick — Add/remove member
+• .promote/.demote — Admin control
+• .mute/.unmute — Group mute
+• .warn/.unwarn — Warning system
+• .tagall — Mention all
+• .setdesc/.setsubject — Group settings
+
+🤖 *Auto-Reply*
+• .addtrigger — Add auto-reply
+• .deltrigger — Delete auto-reply  
+• .listtriggers — Show triggers
+
+👑 *Owner Only*
+• .broadcast — Send to all groups
+
+💡 Type .help <command> for details`;
+    
     await sock.sendMessage(msg.key.remoteJid, { text: menu, mentions: top && top.length ? [top[0][0]] : [] }, { quoted: msg });
   },
 }; 

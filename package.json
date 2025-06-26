@@ -4,7 +4,9 @@
   "description": "WhatsApp Bot inspired by Knight-Bot, powered by Baileys.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "web": "node web-server.js",
+    "dev": "concurrently \"npm run start\" \"npm run web\""
   },
   "keywords": [
     "whatsapp-bot",
@@ -14,13 +16,21 @@
   "author": "Ong-Bak",
   "license": "MIT",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@whiskeysockets/baileys": "^6.7.18",
     "axios": "^1.8.4",
     "chalk": "^4.1.2",
     "chokidar": "^4.0.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
     "ffmpeg-static": "^5.2.0",
     "fluent-ffmpeg": "^2.1.3",
+    "multer": "^1.4.5-lts.1",
     "qrcode-terminal": "^0.12.0",
+    "sharp": "^0.33.5",
     "ytdl-core": "^4.11.5"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }
