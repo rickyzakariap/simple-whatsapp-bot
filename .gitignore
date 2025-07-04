@@ -1,8 +1,8 @@
-# Node
+# Node modules
 node_modules/
 
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -15,14 +15,36 @@ Thumbs.db
 # Env
 .env
 
-# Session/Cache
+# Session/Cache/Temp
 session/
 temp/
+.cache/
+
+# Baileys/whatsapp session
+.auth_info.json
+.wwebjs_cache/
+
+# Debug/test files
+*.mp3
+*.webp
+*.tmp
+*.bak
+debug_*
+debug
 
 # Image editing & legacy folders
 Instagram-Video-Downloader-API/
 Instagram-Video-Downloader-API/snapsave-downloader/
-
-# Ignore any other image editing related folders in the future
 imagechanger/
-ai-edit/ 
+ai-edit/
+
+# Data files (keep only example/template)
+autoresponder.json
+points.json
+# Provide example if needed
+autoresponder.example.json
+points.example.json
+
+# Misc
+web-server.js
+public/ 
