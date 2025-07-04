@@ -47,4 +47,11 @@ points.example.json
 
 # Misc
 web-server.js
-public/ 
+public/
+public_backup/
+debug/
+
+# Exclude from tracking
+*.git
+*.svn
+*.hg 
