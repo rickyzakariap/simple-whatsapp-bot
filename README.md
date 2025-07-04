@@ -1,6 +1,50 @@
-# OngBak-Bot
+# OngBak-Bot WhatsApp
 
-A WhatsApp bot inspired by Knight-Bot, powered by Baileys.
+Bot WhatsApp dengan fitur utama downloader media sosial:
+
+## 📥 Downloader
+- TikTok Video: `.tiktok <url>`
+- YouTube Video: `.yt <url>`
+- YouTube MP3: `.ytmp3 <url>`
+- Facebook Video: `.fb <url>`
+- Instagram Post/Reel: `.ig <url>`
+
+## 🚀 Cara Pakai
+1. **Install:**
+   ```bash
+   git clone <repo-url>
+   cd bot-wa
+   npm install
+   npm install abot-scraper --legacy-peer-deps
+   ```
+2. **Jalankan bot:**
+   ```bash
+   node index.js
+   ```
+3. **Scan QR WhatsApp** saat pertama kali.
+
+## 📝 Contoh Command
+```
+.tiktok https://vt.tiktok.com/...
+.yt https://youtu.be/...
+.ytmp3 https://youtu.be/...
+.fb https://www.facebook.com/...
+.ig https://www.instagram.com/p/...
+```
+
+---
+
+- Maksimal file video/audio: 48MB (batas WhatsApp)
+- Untuk fitur lain, cek `.menu` di WhatsApp
+
+## 📦 Dependency Utama
+- [abot-scraper](https://www.npmjs.com/package/abot-scraper)
+- [@whiskeysockets/baileys](https://github.com/WhiskeySockets/Baileys)
+- axios, sharp, dll
+
+---
+
+**Kontribusi & bug report silakan via GitHub issue/pull request!**
 
 ## Features
 - QR code login

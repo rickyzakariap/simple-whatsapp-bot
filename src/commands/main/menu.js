@@ -1,4 +1,5 @@
 const { getLeaderboard } = require('./points');
+const { commandPrefix } = require('../../../config');
 
 module.exports = {
   name: 'menu',
@@ -52,6 +53,13 @@ module.exports = {
 
 👑 *Owner Only*
 • .broadcast — Send to all groups
+
+📥 *Downloader*
+• ${commandPrefix}tiktok <url> — TikTok Video
+• ${commandPrefix}yt <url> — YouTube Video
+• ${commandPrefix}ytmp3 <url> — YouTube MP3
+• ${commandPrefix}fb <url> — Facebook Video
+• ${commandPrefix}ig <url> — Instagram Post/Reel
 
 💡 Type .help <command> for details`;
     
