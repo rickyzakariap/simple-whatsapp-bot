@@ -29,7 +29,7 @@
 
 1. **Install dependencies:**
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/rickyzakariap/simple-whatsapp-bot.git
    cd bot-wa
    npm install
    npm install abot-scraper --legacy-peer-deps
