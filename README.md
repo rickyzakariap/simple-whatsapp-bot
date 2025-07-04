@@ -4,20 +4,24 @@
 
 ---
 
-## 🚀 Features
+## 🚀 Features & Commands
 
-### 📥 Downloader
-- `.tiktok <url>` — Download TikTok videos
-- `.yt <url>` — Download YouTube videos
-- `.ytmp3 <url>` — Download YouTube as MP3
-- `.fb <url>` — Download Facebook videos
-- `.ig <url>` — Download Instagram posts/reels
+**Downloader:**
+```
+.tiktok <url>      TikTok Video
+.yt <url>          YouTube Video
+.ytmp3 <url>       YouTube MP3
+.fb <url>          Facebook Video
+.ig <url>          Instagram Post/Reel
+```
 
-### 🔍 Search
-- `.ytsearch <query>` — YouTube video search
-- `.igstory <username>` — Instagram stories
-- `.wallpaper <query>` — High-quality wallpapers
-- `.wikimedia <query>` — Wikimedia images/media
+**Search:**
+```
+.ytsearch <query>      YouTube Search
+.igstory <username>    Instagram Stories
+.wallpaper <query>     Wallpaper Search
+.wikimedia <query>     Wikimedia Search
+```
 
 ---
 
@@ -36,21 +40,6 @@
    ```
 3. **Scan the WhatsApp QR code** on first run.
 
----
-
-## 💬 Example Commands
-```
-.tiktok https://vt.tiktok.com/...
-.yt https://youtu.be/...
-.ytmp3 https://youtu.be/...
-.fb https://www.facebook.com/...
-.ig https://www.instagram.com/p/...
-.ytsearch phonk remix
-.igstory cristiano
-.wallpaper anime
-.wikimedia cat
-```
-
 - Max file size for video/audio: 48MB (WhatsApp limit)
 - More features: type `.menu` in WhatsApp
 
@@ -58,4 +47,26 @@
 
 ## 📄 License
 
-MIT License — see [LICENSE](LICENSE) for details. 
+```
+MIT License
+
+Copyright (c) 2024
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+``` 
