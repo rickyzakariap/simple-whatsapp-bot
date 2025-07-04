@@ -1,15 +1,28 @@
-# OngBak-Bot WhatsApp
+# OngBak-Bot WhatsApp 🤖
 
-A simple WhatsApp bot focused on social media downloading.
+**A simple, powerful WhatsApp bot for downloading & searching social media content.**
 
-## 📥 Downloader Features
-- TikTok Video: `.tiktok <url>`
-- YouTube Video: `.yt <url>`
-- YouTube MP3: `.ytmp3 <url>`
-- Facebook Video: `.fb <url>`
-- Instagram Post/Reel: `.ig <url>`
+---
 
-## 🚀 Quick Start
+## 🚀 Features
+
+### 📥 Downloader
+- `.tiktok <url>` — Download TikTok videos
+- `.yt <url>` — Download YouTube videos
+- `.ytmp3 <url>` — Download YouTube as MP3
+- `.fb <url>` — Download Facebook videos
+- `.ig <url>` — Download Instagram posts/reels
+
+### 🔍 Search
+- `.ytsearch <query>` — YouTube video search
+- `.igstory <username>` — Instagram stories
+- `.wallpaper <query>` — High-quality wallpapers
+- `.wikimedia <query>` — Wikimedia images/media
+
+---
+
+## ⚡️ Quick Start
+
 1. **Install dependencies:**
    ```bash
    git clone <repo-url>
@@ -23,40 +36,26 @@ A simple WhatsApp bot focused on social media downloading.
    ```
 3. **Scan the WhatsApp QR code** on first run.
 
-## 📝 Example Commands
+---
+
+## 💬 Example Commands
 ```
 .tiktok https://vt.tiktok.com/...
 .yt https://youtu.be/...
 .ytmp3 https://youtu.be/...
 .fb https://www.facebook.com/...
 .ig https://www.instagram.com/p/...
+.ytsearch phonk remix
+.igstory cristiano
+.wallpaper anime
+.wikimedia cat
 ```
 
-- Maximum file size for video/audio: 48MB (WhatsApp limit)
-- For more features, type `.menu` in WhatsApp
+- Max file size for video/audio: 48MB (WhatsApp limit)
+- More features: type `.menu` in WhatsApp
 
 ---
 
-## License
+## 📄 License
 
-MIT License
-
-Copyright (c) 2024
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE. 
+MIT License — see [LICENSE](LICENSE) for details. 

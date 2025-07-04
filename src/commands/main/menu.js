@@ -61,6 +61,12 @@ module.exports = {
 • ${commandPrefix}fb <url> — Facebook Video
 • ${commandPrefix}ig <url> — Instagram Post/Reel
 
+🔍 *Search*
+• ${commandPrefix}ytsearch <query> — YouTube Search
+• ${commandPrefix}igstory <username> — Instagram Stories
+• ${commandPrefix}wallpaper <query> — Wallpaper Search
+• ${commandPrefix}wikimedia <query> — Wikimedia Search
+
 💡 Type .help <command> for details`;
     
     await sock.sendMessage(msg.key.remoteJid, { text: menu, mentions: top && top.length ? [top[0][0]] : [] }, { quoted: msg });
