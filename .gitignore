@@ -1,6 +1,28 @@
+# Node
 node_modules/
-temp/
-session/
-.env
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
 .DS_Store
-*.log 
+Thumbs.db
+
+# Env
+.env
+
+# Session/Cache
+session/
+temp/
+
+# Image editing & legacy folders
+Instagram-Video-Downloader-API/
+Instagram-Video-Downloader-API/snapsave-downloader/
+
+# Ignore any other image editing related folders in the future
+imagechanger/
+ai-edit/ 
