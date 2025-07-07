@@ -1,19 +1,19 @@
 # OngBak-Bot WhatsApp 🤖
 
-Bot WhatsApp serbaguna untuk download, games, dan tools grup!
+A versatile WhatsApp bot for downloading, games, group tools, and more!
 
 ---
 
-## 🚀 Fitur Utama
-- Download video TikTok, YouTube, Instagram, MP3
-- Games seru: tebak angka, kuis, matematika
-- Tools: sticker, info crypto, cuaca
-- Admin grup: tambah/keluar member
-- Menu perintah ringkas: ketik `.menu` di WhatsApp
+## 🚀 Main Features
+- Download TikTok, YouTube, Instagram videos, and MP3
+- Fun games: guess the number, quiz, math challenge
+- Tools: sticker maker, crypto info, weather
+- Group admin: add/kick members
+- Simple command menu: type `.menu` in WhatsApp
 
 ---
 
-## 📥 Perintah Populer
+## 📥 Popular Commands
 
 **Downloader:**
 ```
@@ -25,48 +25,49 @@ Bot WhatsApp serbaguna untuk download, games, dan tools grup!
 
 **Games & Tools:**
 ```
-.tebakangka         Tebak angka
-.quiz              Kuis
-.math              Matematika
-.sticker           Sticker
-.coin              Info crypto
-.weather           Cuaca
+.tebakangka         Guess the number
+.quiz              Quiz
+.math              Math challenge
+.sticker           Sticker maker
+.coin              Crypto info
+.weather           Weather info
 ```
 
 **Group:**
 ```
-.add <nomor>       Tambah member
-.kick <nomor>      Keluarkan member
+.add <number>      Add member
+.kick <number>     Remove member
 ```
 
 ---
 
-## ⚡️ Cara Pakai
+## ⚡️ Getting Started
+
 1. **Install dependencies:**
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/rickyzakariap/simple-whatsapp-bot.git
    cd bot-wa
    npm install
    npm install abot-scraper --legacy-peer-deps
    ```
-2. **Jalankan bot:**
+2. **Run the bot:**
    ```bash
    node index.js
    ```
-3. **Scan QR WhatsApp** saat pertama kali dijalankan.
+3. **Scan the WhatsApp QR code** on first run.
 
-- Batas file video/audio: 48MB (batas WhatsApp)
-- Lihat semua fitur: ketik `.menu` di WhatsApp
-
----
-
-## 🙋‍♂️ Support & Kontribusi
-- Saran/bug: buka issue di GitHub
-- Kontak: [WhatsApp Owner](https://wa.me/628xxxxxxx)
+- Max file size for video/audio: 48MB (WhatsApp limit)
+- See all features: type `.menu` in WhatsApp
 
 ---
 
-## 📄 Lisensi
+## 🙋‍♂️ Support & Contribution
+- Suggestions/bugs: open an issue on GitHub
+- Contact: [WhatsApp Owner](https://wa.me/628xxxxxxx)
+
+---
+
+## 📄 License
 
 MIT License
 
