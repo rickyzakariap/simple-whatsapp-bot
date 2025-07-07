@@ -63,7 +63,7 @@ A versatile WhatsApp bot for downloading, games, group tools, and more!
 
 ## 🙋‍♂️ Support & Contribution
 - Suggestions/bugs: open an issue on GitHub
-- Contact: [WhatsApp Owner](https://wa.me/628xxxxxxx)
+- Contact: @rickyzakariap
 
 ---
 
