@@ -1,32 +1,47 @@
 # OngBak-Bot WhatsApp 🤖
 
-**A simple, powerful WhatsApp bot for downloading & searching social media content.**
+Bot WhatsApp serbaguna untuk download, games, dan tools grup!
 
 ---
 
-## 🚀 Features & Commands
+## 🚀 Fitur Utama
+- Download video TikTok, YouTube, Instagram, MP3
+- Games seru: tebak angka, kuis, matematika
+- Tools: sticker, info crypto, cuaca
+- Admin grup: tambah/keluar member
+- Menu perintah ringkas: ketik `.menu` di WhatsApp
+
+---
+
+## 📥 Perintah Populer
 
 **Downloader:**
 ```
 .tiktok <url>      TikTok Video
 .yt <url>          YouTube Video
 .ytmp3 <url>       YouTube MP3
-.fb <url>          Facebook Video
 .ig <url>          Instagram Post/Reel
 ```
 
-**Search:**
+**Games & Tools:**
 ```
-.ytsearch <query>      YouTube Search
-.igstory <username>    Instagram Stories
-.wallpaper <query>     Wallpaper Search
-.wikimedia <query>     Wikimedia Search
+.tebakangka         Tebak angka
+.quiz              Kuis
+.math              Matematika
+.sticker           Sticker
+.coin              Info crypto
+.weather           Cuaca
+```
+
+**Group:**
+```
+.add <nomor>       Tambah member
+.kick <nomor>      Keluarkan member
 ```
 
 ---
 
-## ⚡️ Quick Start
-
+## ⚡️ Cara Pakai
 1. **Install dependencies:**
    ```bash
    git clone <repo-url>
@@ -34,20 +49,25 @@
    npm install
    npm install abot-scraper --legacy-peer-deps
    ```
-2. **Run the bot:**
+2. **Jalankan bot:**
    ```bash
    node index.js
    ```
-3. **Scan the WhatsApp QR code** on first run.
+3. **Scan QR WhatsApp** saat pertama kali dijalankan.
 
-- Max file size for video/audio: 48MB (WhatsApp limit)
-- More features: type `.menu` in WhatsApp
+- Batas file video/audio: 48MB (batas WhatsApp)
+- Lihat semua fitur: ketik `.menu` di WhatsApp
 
 ---
 
-## 📄 License
+## 🙋‍♂️ Support & Kontribusi
+- Saran/bug: buka issue di GitHub
+- Kontak: [WhatsApp Owner](https://wa.me/628xxxxxxx)
 
-```
+---
+
+## 📄 Lisensi
+
 MIT License
 
 Copyright (c) 2024
