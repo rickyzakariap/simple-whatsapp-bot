@@ -23,11 +23,10 @@ module.exports = {
       return sock.sendMessage(jid, { text: 'Tag or reply to the user you want to kick.' }, { quoted: msg });
     }
     try {
-      await sock.groupRemove(jid, [target]);
+      await sock.groupParticipantsUpdate(jid, [target], 'remove');
       await sock.sendMessage(jid, { text: `Removed @${target.split('@')[0]}`, mentions: [target] }, { quoted: msg });
-    } catch (e) {
-      console.error('Kick error:', e);
-      await sock.sendMessage(jid, { text: 'Failed to kick: ' + (e.message || e.toString()), mentions: [target] }, { quoted: msg });
+    } catch (error) {
+      await sock.sendMessage(jid, { text: 'An error occurred while removing the member from the group.' }, { quoted: msg });
     }
   },
-}; 
+};

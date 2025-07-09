@@ -11,6 +11,7 @@ module.exports = {
 • .ping — Status bot
 • .help — Bantuan
 • .owner — Info owner
+• .berita [keyword] — Berita Indonesia dari Google News, bisa filter kata kunci (misal: .berita lowongan)
 
 *Games*
 • .tebakangka — Tebak angka
@@ -27,6 +28,7 @@ module.exports = {
 • .yt <url> — YouTube Video
 • .ytmp3 <url> — YouTube MP3
 • .ig <url> — Instagram Post/Reel
+• .fb <url> — Facebook Video
 
 *Group*
 • .add — Tambah member
