@@ -21,6 +21,7 @@ A versatile WhatsApp bot for downloading, games, group tools, and more!
 .yt <url>          YouTube Video
 .ytmp3 <url>       YouTube MP3
 .ig <url>          Instagram Post/Reel
+.fb <url>          Facebook Video
 ```
 
 **Games & Tools:**
