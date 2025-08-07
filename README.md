@@ -47,7 +47,7 @@ A versatile WhatsApp bot for downloading, games, group tools, and more!
 1. **Install dependencies:**
    ```bash
    git clone https://github.com/rickyzakariap/simple-whatsapp-bot.git
-   cd bot-wa
+   cd simple-whatsapp-bot
    npm install
    npm install abot-scraper --legacy-peer-deps
    ```
