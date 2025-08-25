@@ -26,7 +26,7 @@ A versatile WhatsApp bot for downloading, games, group tools, and more!
 
 **Games & Tools:**
 ```
-.tebakangka         Guess the number
+.tebakangka        Guess the number
 .quiz              Quiz
 .math              Math challenge
 .sticker           Sticker maker
