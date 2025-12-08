@@ -3,143 +3,157 @@ const qrcode = require('qrcode-terminal');
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
-const chokidar = require('chokidar');
+const axios = require('axios');
 const config = require('./config');
 const { addPoint } = require('./src/commands/main/points');
 const welcomeCmd = require('./src/commands/main/welcome');
 const autoresponderCmd = require('./src/commands/main/autoresponder');
-const alertPath = path.join(__dirname, 'alerts.json');
-const schedulePath = path.join(__dirname, 'schedules.json');
-const birthdayPath = path.join(__dirname, 'birthdays.json');
-const axios = require('axios');
+const database = require('./src/lib/database');
+const apiManager = require('./src/lib/api-manager');
+const cache = require('./src/lib/cache');
+const performanceMonitor = require('./src/lib/performance-monitor');
+const connectionHealth = require('./src/lib/connection-health');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
-// Load commands with hot-reload
-const commands = new Map();
+// Initialize optimized command loader
+const CommandLoader = require('./src/lib/command-loader');
 const commandsDir = path.join(__dirname, 'src/commands/main');
-function loadAllCommands() {
-  commands.clear();
-  fs.readdirSync(commandsDir).forEach(file => {
-    if (file.endsWith('.js')) {
-      delete require.cache[require.resolve(path.join(commandsDir, file))];
-      const cmd = require(path.join(commandsDir, file));
-      commands.set(cmd.name, cmd);
-    }
-  });
-}
-loadAllCommands();
+const commandLoader = new CommandLoader(commandsDir);
 
-// Watch for changes in the commands directory
-chokidar.watch(commandsDir).on('all', (event, filePath) => {
-  if (filePath.endsWith('.js')) {
-    console.log(`[HOT-RELOAD] Reloading command: ${path.basename(filePath)}`);
-    loadAllCommands();
-  }
-});
-
-function loadJson(p) { 
-  try {
-    if (!fs.existsSync(p)) return {}; 
-    return JSON.parse(fs.readFileSync(p));
-  } catch (error) {
-    console.error(`Error loading JSON file ${p}:`, error);
-    return {};
-  }
+// Legacy functions replaced by database layer
+async function loadJson(p) {
+  const filename = path.basename(p, '.json');
+  return await database.load(filename, {});
 }
 
-function saveJson(p, d) { 
-  try {
-    fs.writeFileSync(p, JSON.stringify(d, null, 2));
-  } catch (error) {
-    console.error(`Error saving JSON file ${p}:`, error);
-  }
+function saveJson(p, d) {
+  const filename = path.basename(p, '.json');
+  database.save(filename, d);
 }
 
 // Store interval IDs for proper cleanup
 const backgroundIntervals = [];
 
 async function pollBackground(sock) {
-  // Price Alerts
+  // Price Alerts - Optimized with caching and rate limiting
   const priceAlertInterval = setInterval(async () => {
     try {
-      const db = loadJson(alertPath);
+      const db = await database.load('alerts');
+      const alertsToCheck = [];
+
+      // Collect all unique symbols to check
+      const symbolsToCheck = new Set();
       for (const user in db) {
         for (const alert of db[user]) {
-          try {
-            const { data } = await axios.get(`https://api.coingecko.com/api/v3/coins/markets`, { 
-              params: { vs_currency: 'usd', ids: '', symbols: alert.symbol, per_page: 1 },
-              timeout: 10000 // 10 second timeout
+          symbolsToCheck.add(alert.symbol);
+          alertsToCheck.push({ user, alert });
+        }
+      }
+
+      if (symbolsToCheck.size === 0) return;
+
+      // Batch check prices for all symbols
+      const symbols = Array.from(symbolsToCheck).join(',');
+      try {
+        const data = await apiManager.getCoinPrice(symbols);
+        const priceMap = new Map();
+        data.forEach(coin => {
+          priceMap.set(coin.symbol.toLowerCase(), coin);
+        });
+
+        // Check alerts and send notifications
+        const updatedDb = { ...db };
+        for (const { user, alert } of alertsToCheck) {
+          const coin = priceMap.get(alert.symbol.toLowerCase());
+          if (coin && coin.current_price >= alert.price) {
+            await sock.sendMessage(user, {
+              text: `🚨 ${coin.name} (${coin.symbol.toUpperCase()}) hit $${coin.current_price} (alert: $${alert.price})`
             });
-            const coin = data.find(c => c.symbol.toLowerCase() === alert.symbol);
-            if (coin && coin.current_price >= alert.price) {
-              await sock.sendMessage(user, { text: `🚨 ${coin.name} (${coin.symbol.toUpperCase()}) hit $${coin.current_price} (alert: $${alert.price})` });
-              db[user] = db[user].filter(a => a !== alert);
-              saveJson(alertPath, db);
-            }
-          } catch (error) {
-            console.error(`Error checking price alert for ${alert.symbol}:`, error.message);
+            updatedDb[user] = updatedDb[user].filter(a => a !== alert);
           }
         }
+
+        database.save('alerts', updatedDb);
+      } catch (error) {
+        console.error('Error checking price alerts:', error.message);
       }
     } catch (error) {
       console.error('Error in price alerts polling:', error.message);
     }
-  }, 60 * 1000);
-  
+  }, config.polling.priceAlerts);
+
   backgroundIntervals.push(priceAlertInterval);
 
-  // Scheduled Messages
+  // Scheduled Messages - Optimized
   const scheduleInterval = setInterval(async () => {
     try {
-      const db = loadJson(schedulePath);
+      const db = await database.load('schedules');
       const now = new Date();
-      const hhmm = now.toTimeString().slice(0,5);
+      const hhmm = now.toTimeString().slice(0, 5);
+
+      const messagesToSend = [];
       for (const jid in db) {
-        db[jid] = db[jid] || [];
-        for (const s of db[jid]) {
+        const schedules = db[jid] || [];
+        for (const s of schedules) {
           if (s.time === hhmm) {
-            try {
-              await sock.sendMessage(jid, { text: `[Scheduled] ${s.message}` });
-            } catch (error) {
-              console.error(`Error sending scheduled message to ${jid}:`, error.message);
-            }
+            messagesToSend.push({ jid, message: s.message });
           }
         }
+      }
+
+      // Send messages concurrently
+      if (messagesToSend.length > 0) {
+        await Promise.allSettled(
+          messagesToSend.map(({ jid, message }) =>
+            sock.sendMessage(jid, { text: `[Scheduled] ${message}` })
+              .catch(error => console.error(`Error sending scheduled message to ${jid}:`, error.message))
+          )
+        );
       }
     } catch (error) {
       console.error('Error in scheduled messages polling:', error.message);
     }
-  }, 60 * 1000);
-  
+  }, config.polling.scheduledMessages);
+
   backgroundIntervals.push(scheduleInterval);
 
-  // Birthday Reminders
+  // Birthday Reminders - Optimized
   const birthdayInterval = setInterval(async () => {
     try {
-      const db = loadJson(birthdayPath);
+      const db = await database.load('birthdays');
       const now = new Date();
-      const mmdd = ('0'+(now.getMonth()+1)).slice(-2)+'-'+('0'+now.getDate()).slice(-2);
+      const mmdd = ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2);
+
+      const birthdayMessages = [];
       for (const user in db) {
         if (db[user] === mmdd) {
           const jid = user.includes('@g.us') ? user : null;
           const mention = user;
           if (jid) {
-            try {
-              await sock.sendMessage(jid, { text: `🎂 Selamat ulang tahun @${mention.split('@')[0]}!`, mentions: [mention] });
-            } catch (error) {
-              console.error(`Error sending birthday message to ${jid}:`, error.message);
-            }
+            birthdayMessages.push({ jid, mention });
           }
         }
+      }
+
+      // Send birthday messages concurrently
+      if (birthdayMessages.length > 0) {
+        await Promise.allSettled(
+          birthdayMessages.map(({ jid, mention }) =>
+            sock.sendMessage(jid, {
+              text: `🎂 Selamat ulang tahun @${mention.split('@')[0]}!`,
+              mentions: [mention]
+            }).catch(error => console.error(`Error sending birthday message to ${jid}:`, error.message))
+          )
+        );
       }
     } catch (error) {
       console.error('Error in birthday reminders polling:', error.message);
     }
-  }, 60 * 1000);
-  
+  }, config.polling.birthdayReminders);
+
   backgroundIntervals.push(birthdayInterval);
 }
 
@@ -200,25 +214,25 @@ async function sendStickerFromBase64(sock, jid, base64Data, quotedMsg) {
 async function sendStickerFromUrl(sock, jid, url, quotedMsg) {
   let tempInput = null;
   let tempOutput = null;
-  
+
   try {
     // Download image from URL
-    const res = await axios.get(url, { 
+    const res = await axios.get(url, {
       responseType: 'arraybuffer',
       timeout: 30000 // 30 second timeout
     });
     const buffer = Buffer.from(res.data);
-    
+
     const tempDir = path.join(__dirname, 'temp');
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
-    
+
     tempInput = path.join(tempDir, `autoresponder_${Date.now()}.jpg`);
     tempOutput = path.join(tempDir, `autoresponder_${Date.now()}.webp`);
-    
+
     fs.writeFileSync(tempInput, buffer);
-    
+
     await new Promise((resolve, reject) => {
       ffmpeg(tempInput)
         .outputOptions([
@@ -237,10 +251,10 @@ async function sendStickerFromUrl(sock, jid, url, quotedMsg) {
         .on('end', resolve)
         .on('error', reject);
     });
-    
+
     const stickerBuffer = fs.readFileSync(tempOutput);
     await sock.sendMessage(jid, { sticker: stickerBuffer }, { quoted: quotedMsg });
-    
+
   } catch (error) {
     console.error('Error creating sticker from URL:', error);
     // Fallback to text message if sticker creation fails
@@ -271,16 +285,51 @@ async function startBot() {
 
   sock.ev.on('creds.update', saveCreds);
 
-  sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
+  sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
     if (qr) qrcode.generate(qr, { small: true });
     if (connection === 'close') {
+      const reason = lastDisconnect?.error?.message || 'unknown';
+      connectionHealth.connectionClosed(reason);
+
       const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
       console.log(chalk.red('Connection closed. Reconnecting...'));
+
       // Clear intervals before reconnecting
       clearBackgroundIntervals();
-      if (shouldReconnect) startBot();
+      connectionHealth.stopMonitoring();
+
+      if (shouldReconnect && connectionHealth.shouldReconnect()) {
+        const delay = connectionHealth.getReconnectDelay();
+        console.log(chalk.yellow(`Reconnecting in ${delay}ms...`));
+        setTimeout(() => startBot(), delay);
+      } else if (!shouldReconnect) {
+        console.log(chalk.red('Logged out. Not reconnecting.'));
+      } else {
+        console.log(chalk.red('Max reconnect attempts reached.'));
+      }
     } else if (connection === 'open') {
+      connectionHealth.connectionOpened();
       console.log(chalk.green('OngBak-Bot is ready!'));
+
+      // Initialize command loader
+      await commandLoader.initialize();
+      console.log(chalk.blue('Command loader initialized'));
+
+      // Preload frequently used commands
+      const frequentCommands = ['help', 'menu', 'ping', 'points', 'coin'];
+      await commandLoader.preloadCommands(frequentCommands);
+
+      // Preload frequently accessed data
+      await database.preload();
+      console.log(chalk.blue('Database preloaded successfully'));
+
+      // Start performance monitoring
+      performanceMonitor.start();
+      console.log(chalk.blue('Performance monitoring started'));
+
+      // Start connection health monitoring
+      connectionHealth.startMonitoring(sock);
+      console.log(chalk.blue('Connection health monitoring started'));
     }
   });
 
@@ -316,11 +365,16 @@ async function startBot() {
   sock.ev.on('messages.upsert', async ({ messages }) => {
     const msg = messages[0];
     if (!msg.message || msg.key.fromMe) return;
-    
+
+    const startTime = Date.now();
+
     try {
+      // Record message processing
+      performanceMonitor.recordMessage();
+
       // Passive point for any message
-      addPoint(msg.key.remoteJid, msg.key.participant || msg.key.remoteJid, 1);
-      
+      await addPoint(msg.key.remoteJid, msg.key.participant || msg.key.remoteJid, 1);
+
       // Autoresponder logic
       const triggers = autoresponderCmd.getTriggers(msg.key.remoteJid);
       const body = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
@@ -379,21 +433,30 @@ async function startBot() {
           break;
         }
       }
-      
+
       if (!body.startsWith(config.commandPrefix)) return;
       const args = body.slice(config.commandPrefix.length).trim().split(/ +/);
       const command = args.shift().toLowerCase();
-      if (commands.has(command)) {
+      if (commandLoader.hasCommand(command)) {
         console.log('COMMAND TRIGGERED:', command, args);
+        const commandStartTime = Date.now();
         try {
-          await commands.get(command).execute(sock, msg, args);
+          const cmd = await commandLoader.getCommand(command);
+          if (cmd) {
+            await cmd.execute(sock, msg, args);
+            performanceMonitor.recordCommand(command, commandStartTime);
+          } else {
+            await sock.sendMessage(msg.key.remoteJid, { text: '❌ Failed to load command.' }, { quoted: msg });
+          }
         } catch (e) {
           console.error(`Error executing command ${command}:`, e);
+          performanceMonitor.recordError(e, `command:${command}`);
           await sock.sendMessage(msg.key.remoteJid, { text: '❌ Error: ' + e.message }, { quoted: msg });
         }
       }
     } catch (error) {
       console.error('Error processing message:', error.message);
+      performanceMonitor.recordError(error, 'message_processing');
     }
   });
 
@@ -401,15 +464,47 @@ async function startBot() {
 }
 
 // Handle process termination gracefully
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log(chalk.yellow('\nShutting down bot...'));
   clearBackgroundIntervals();
+
+  // Shutdown command loader
+  commandLoader.shutdown();
+  console.log(chalk.blue('Command loader shutdown'));
+
+  // Stop performance monitoring
+  performanceMonitor.stop();
+  console.log(chalk.blue('Performance monitoring stopped'));
+
+  // Flush any pending database writes
+  await database.flush();
+  console.log(chalk.blue('Database flushed'));
+
+  // Shutdown API manager
+  apiManager.shutdown();
+
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log(chalk.yellow('\nShutting down bot...'));
   clearBackgroundIntervals();
+
+  // Shutdown command loader
+  commandLoader.shutdown();
+  console.log(chalk.blue('Command loader shutdown'));
+
+  // Stop performance monitoring
+  performanceMonitor.stop();
+  console.log(chalk.blue('Performance monitoring stopped'));
+
+  // Flush any pending database writes
+  await database.flush();
+  console.log(chalk.blue('Database flushed'));
+
+  // Shutdown API manager
+  apiManager.shutdown();
+
   process.exit(0);
 });
 

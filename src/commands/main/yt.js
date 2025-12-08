@@ -1,14 +1,19 @@
 const axios = require('axios');
-const fs = require('fs');
 const { Downloader } = require('abot-scraper');
+const { formatError, formatLoading, isValidYouTubeUrl } = require('../../lib/response-helper');
 const downloader = new Downloader();
 
 module.exports = {
   name: 'yt',
   description: 'Download video YouTube',
+  usage: '.yt <youtube_url>',
   async execute(sock, msg, args) {
     const url = args[0];
-    if (!url) return await sock.sendMessage(msg.key.remoteJid, { text: 'Masukkan link YouTube!\nContoh: .yt https://youtu.be/...' }, { quoted: msg });
+    if (!url || !isValidYouTubeUrl(url)) {
+      return await sock.sendMessage(msg.key.remoteJid, {
+        text: formatError('Invalid YouTube URL', 'Usage: .yt https://youtu.be/...')
+      }, { quoted: msg });
+    }
     try {
       const result = await downloader.youtubeDownloader(url);
       if (result.status === 200 && result.result) {
@@ -16,11 +21,11 @@ module.exports = {
         let videoUrl = null;
         if (result.result.downloadLinks) {
           videoUrl = result.result.downloadLinks['360p'] ||
-                     result.result.downloadLinks['240p'] ||
-                     result.result.downloadLinks['144p'] ||
-                     result.result.downloadLinks['480p'] ||
-                     result.result.downloadLinks['720p'] ||
-                     result.result.downloadLinks['1080p'];
+            result.result.downloadLinks['240p'] ||
+            result.result.downloadLinks['144p'] ||
+            result.result.downloadLinks['480p'] ||
+            result.result.downloadLinks['720p'] ||
+            result.result.downloadLinks['1080p'];
         }
         // Fallback ke result.result.video jika ada
         if (!videoUrl && result.result.video) videoUrl = result.result.video;

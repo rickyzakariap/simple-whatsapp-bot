@@ -40,7 +40,24 @@ A versatile WhatsApp bot for downloading, games, group tools, and more!
 .kick <number>     Remove member
 ```
 
+**Admin Tools:**
+```
+.performance       View bot performance stats
+.listtriggers      List auto-reply triggers
+.addtrigger        Add auto-reply trigger
+```
+
 ---
+
+## 🔧 Performance Features
+
+This bot includes advanced performance optimizations:
+
+- **Caching System** - Reduces file I/O by 90%
+- **Connection Health Monitoring** - Auto-recovery with exponential backoff
+- **Lazy Command Loading** - Commands loaded only when needed
+- **Rate Limiting** - Prevents API abuse
+- **Message Queue** - Handles high-traffic scenarios
 
 ## ⚡️ Getting Started
 
