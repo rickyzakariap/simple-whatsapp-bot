@@ -24,8 +24,8 @@ module.exports = {
         // fs.writeFileSync('debug_tiktok.mp4', videoRes.data);
 
         // Cek ukuran
-        if (videoRes.data.length > 48 * 1024 * 1024) {
-          return await sock.sendMessage(msg.key.remoteJid, { text: 'Gagal: Video terlalu besar untuk dikirim via WhatsApp.' }, { quoted: msg });
+        if (videoRes.data.length > 100 * 1024 * 1024) {
+          return await sock.sendMessage(msg.key.remoteJid, { text: 'Gagal: Video terlalu besar untuk dikirim via WhatsApp (max 100MB).' }, { quoted: msg });
         }
 
         await sock.sendMessage(

@@ -4,7 +4,7 @@ module.exports = {
   ownerNumber: '628988814717', // Change to your number
   commandPrefix: '.',
   sessionName: 'session',
-  
+
   // Database file paths
   databaseFiles: {
     alerts: 'alerts.json',
@@ -14,14 +14,14 @@ module.exports = {
     autoresponder: 'autoresponder.json',
     welcome: 'welcome.json'
   },
-  
+
   // Background polling intervals (in milliseconds)
   polling: {
     priceAlerts: 60 * 1000, // 1 minute
     scheduledMessages: 60 * 1000, // 1 minute
     birthdayReminders: 60 * 1000 // 1 minute
   },
-  
+
   // Game settings
   games: {
     tictactoe: {
@@ -41,7 +41,7 @@ module.exports = {
       pointsForCorrect: 3
     }
   },
-  
+
   // API settings
   api: {
     coingecko: {
@@ -52,7 +52,7 @@ module.exports = {
       timeout: 30000 // 30 seconds
     }
   },
-  
+
   // Input validation limits
   validation: {
     maxMessageLength: 1000,
@@ -61,10 +61,10 @@ module.exports = {
     maxSymbolLength: 10,
     minPrice: 0.01
   },
-  
+
   // File processing
   fileProcessing: {
-    maxFileSize: 50 * 1024 * 1024, // 50MB
+    maxFileSize: 100 * 1024 * 1024, // 100MB (WhatsApp limit)
     supportedImageFormats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
     supportedVideoFormats: ['mp4', 'avi', 'mov', 'mkv']
   }

@@ -52,9 +52,9 @@ module.exports = {
         }, { quoted: msg });
       }
 
-      if (audioRes.data.length > 48 * 1024 * 1024) {
+      if (audioRes.data.length > 100 * 1024 * 1024) {
         return await sock.sendMessage(msg.key.remoteJid, {
-          text: formatError('File too large', 'Audio exceeds WhatsApp 48MB limit')
+          text: formatError('File too large', 'Audio exceeds WhatsApp 100MB limit')
         }, { quoted: msg });
       }
 

@@ -21,8 +21,8 @@ module.exports = {
             }
           });
           if (media.type === 'video') {
-            if (mediaRes.data.length > 48 * 1024 * 1024) {
-              await sock.sendMessage(msg.key.remoteJid, { text: 'Gagal: Video terlalu besar untuk dikirim via WhatsApp.' }, { quoted: msg });
+            if (mediaRes.data.length > 100 * 1024 * 1024) {
+              await sock.sendMessage(msg.key.remoteJid, { text: 'Gagal: Video terlalu besar untuk dikirim via WhatsApp (max 100MB).' }, { quoted: msg });
               continue;
             }
             await sock.sendMessage(

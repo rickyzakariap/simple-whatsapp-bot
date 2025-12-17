@@ -20,8 +20,8 @@ module.exports = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
           }
         });
-        if (videoRes.data.length > 48 * 1024 * 1024) {
-          return await sock.sendMessage(msg.key.remoteJid, { text: 'Gagal: Video terlalu besar untuk dikirim via WhatsApp.' }, { quoted: msg });
+        if (videoRes.data.length > 100 * 1024 * 1024) {
+          return await sock.sendMessage(msg.key.remoteJid, { text: 'Gagal: Video terlalu besar untuk dikirim via WhatsApp (max 100MB).' }, { quoted: msg });
         }
         await sock.sendMessage(
           msg.key.remoteJid,

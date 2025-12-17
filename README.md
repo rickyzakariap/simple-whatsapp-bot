@@ -74,7 +74,7 @@ This bot includes advanced performance optimizations:
    ```
 3. **Scan the WhatsApp QR code** on first run.
 
-- Max file size for video/audio: 48MB (WhatsApp limit)
+- Max file size for video/audio: 100MB (WhatsApp limit)
 - See all features: type `.menu` in WhatsApp
 
 ---
