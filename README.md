@@ -20,9 +20,11 @@ A versatile WhatsApp bot for downloading, games, group tools, and more!
 .tiktok <url>      TikTok Video
 .yt <url>          YouTube Video
 .ytmp3 <url>       YouTube MP3
-.ig <url>          Instagram Post/Reel
-.fb <url>          Facebook Video
+.ig <url>          Instagram Post/Reel ⚠️
+.fb <url>          Facebook Video ⚠️
 ```
+
+> ⚠️ **Note:** Instagram and Facebook downloaders may be unreliable due to platform restrictions. TikTok and YouTube work reliably.
 
 **Games & Tools:**
 ```
