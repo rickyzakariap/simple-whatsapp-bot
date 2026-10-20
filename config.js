@@ -1,18 +1,36 @@
-module.exports = {
-  botName: 'OngBak-Bot',
-  ownerName: 'Ong-Bak',
-  ownerNumber: '628988814717', // Change to your number
-  commandPrefix: '.',
-  sessionName: 'session',
+require('dotenv').config();
 
-  // Database file paths
+function envList(name) {
+  return String(process.env[name] || '')
+    .split(',')
+    .map(value => value.trim())
+    .filter(Boolean);
+}
+
+const ownerNumber = String(process.env.OWNER_NUMBER || '').replace(/[^0-9]/g, '');
+
+module.exports = {
+  botName: process.env.BOT_NAME || 'OngBak-Bot',
+  ownerName: process.env.OWNER_NAME || 'Ong-Bak',
+  // Human owner's number. The bot account is also treated as an owner fallback.
+  ownerNumber,
+  ownerJids: envList('OWNER_JIDS'),
+  ownerGithub: process.env.OWNER_GITHUB || 'rickyzakariap',
+  commandPrefix: process.env.COMMAND_PREFIX || '.',
+  sessionName: process.env.SESSION_NAME || 'session',
+  timezone: process.env.TIMEZONE || 'Asia/Jakarta',
+
+  // Runtime JSON files. These are created automatically and must never be committed.
   databaseFiles: {
     alerts: 'alerts.json',
     schedules: 'schedules.json',
     birthdays: 'birthdays.json',
     points: 'points.json',
     autoresponder: 'autoresponder.json',
-    welcome: 'welcome.json'
+    welcome: 'welcome.json',
+    polls: 'polls.json',
+    portfolio: 'portfolio.json',
+    warnings: 'warnings.json'
   },
 
   // Background polling intervals (in milliseconds)
@@ -68,4 +86,4 @@ module.exports = {
     supportedImageFormats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
     supportedVideoFormats: ['mp4', 'avi', 'mov', 'mkv']
   }
-}; 
+};

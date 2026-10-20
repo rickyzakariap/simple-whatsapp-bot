@@ -1,15 +1,20 @@
+const config = require('../../../config');
+
 module.exports = {
   name: 'owner',
   description: 'Show owner info',
   async execute(sock, msg, args) {
-    const info = `*🤖 Bot Owner Information*
-    
-📱 Number: wa.me/628988814717
-👤 Name: Ong-Bak Ganteng
-🌐 GitHub: github.com/rickyzakariap
-💬 Note: Nothing last forever, we can change the future [Alucrot 1945]
+    const number = config.ownerNumber
+      ? `wa.me/${config.ownerNumber}`
+      : 'Not configured (set OWNER_NUMBER in .env)';
 
-_Bot created with ❤️ by Ong-Bak_`;
+    const info = `*🤖 Bot Owner Information*
+
+📱 Number: ${number}
+👤 Name: ${config.ownerName}
+🌐 GitHub: github.com/${config.ownerGithub}
+
+_Bot created with ❤️ by ${config.ownerName}_`;
     await sock.sendMessage(msg.key.remoteJid, { text: info }, { quoted: msg });
-  },
-}; 
+  }
+};
