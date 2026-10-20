@@ -1,5 +1,6 @@
 const cache = require('./cache');
 const path = require('path');
+const config = require('../../config');
 
 /**
  * Optimized database layer with caching and batch operations
@@ -10,16 +11,7 @@ class Database {
     this.basePath = path.join(__dirname, '../..');
     
     // Database file paths from config
-    this.files = {
-      alerts: 'alerts.json',
-      schedules: 'schedules.json',
-      birthdays: 'birthdays.json',
-      points: 'points.json',
-      autoresponder: 'autoresponder.json',
-      welcome: 'welcome.json',
-      polls: 'polls.json',
-      portfolio: 'portfolio.json'
-    };
+    this.files = { ...config.databaseFiles };
   }
 
   /**

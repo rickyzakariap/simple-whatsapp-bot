@@ -71,6 +71,20 @@ class ApiManager {
   }
 
   /**
+   * Resolve relative API paths against the CoinGecko base URL. Older code used
+   * paths such as "/coins/markets" directly with `new URL()`, which throws
+   * "Invalid URL" before the request is even made.
+   */
+  resolveUrl(url) {
+    if (/^https?:\/\//i.test(url)) return url;
+    const baseUrl = this.axiosInstances.get('coingecko')?.defaults?.baseURL ||
+      'https://api.coingecko.com/api/v3';
+    const base = new URL(baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+    // A leading slash would otherwise replace the /api/v3 base path.
+    return new URL(String(url).replace(/^\/+/, ''), base).toString();
+  }
+
+  /**
    * Get appropriate axios instance for domain
    */
   getAxiosInstance(url) {
@@ -144,11 +158,12 @@ class ApiManager {
     this.stats.totalRequests++;
 
     try {
-      const domain = new URL(url).hostname;
+      const fullUrl = this.resolveUrl(url);
+      const domain = new URL(fullUrl).hostname;
       
       // Check cache first (unless skipped)
       if (!skipCache && method === 'GET') {
-        const cacheKey = this.generateCacheKey(url, axiosOptions);
+        const cacheKey = this.generateCacheKey(fullUrl, axiosOptions);
         const cached = cache.getApi(cacheKey, cacheTTL);
         
         if (cached) {
@@ -169,14 +184,14 @@ class ApiManager {
       this.trackRequest(domain);
 
       // Make the request with retries
-      const response = await this.makeRequestWithRetry(url, {
+      const response = await this.makeRequestWithRetry(fullUrl, {
         method,
         ...axiosOptions
       }, retries);
 
       // Cache successful GET responses
       if (!skipCache && method === 'GET' && response.status === 200) {
-        const cacheKey = this.generateCacheKey(url, axiosOptions);
+        const cacheKey = this.generateCacheKey(fullUrl, axiosOptions);
         cache.setApi(cacheKey, response.data, cacheTTL);
       }
 
@@ -237,24 +252,28 @@ class ApiManager {
   
   // CoinGecko API methods
   async getCoinPrice(symbol, vsCurrency = 'usd') {
-    return this.request('/coins/markets', {
+    const symbols = Array.isArray(symbol) ? symbol.join(',') : String(symbol || '');
+    return this.request('https://api.coingecko.com/api/v3/coins/markets', {
       params: {
         vs_currency: vsCurrency,
-        symbols: symbol,
-        per_page: 1
+        symbols,
+        order: 'market_cap_desc',
+        per_page: 250,
+        page: 1,
+        sparkline: false
       },
       cacheTTL: 2 * 60 * 1000 // 2 minutes for price data
     });
   }
 
   async getCoinList() {
-    return this.request('/coins/list', {
+    return this.request('https://api.coingecko.com/api/v3/coins/list', {
       cacheTTL: 60 * 60 * 1000 // 1 hour for coin list
     });
   }
 
   async getTopGainers(limit = 10) {
-    return this.request('/coins/markets', {
+    return this.request('https://api.coingecko.com/api/v3/coins/markets', {
       params: {
         vs_currency: 'usd',
         order: 'price_change_percentage_24h_desc',
@@ -266,7 +285,7 @@ class ApiManager {
   }
 
   async getTopLosers(limit = 10) {
-    return this.request('/coins/markets', {
+    return this.request('https://api.coingecko.com/api/v3/coins/markets', {
       params: {
         vs_currency: 'usd',
         order: 'price_change_percentage_24h_asc',
