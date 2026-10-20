@@ -1,27 +1,37 @@
-const fs = require('fs');
-const path = require('path');
+const config = require('../../../config');
+const { getCommandMetadata, listCommandNames } = require('../../lib/command-catalog');
 
 module.exports = {
   name: 'help',
-  description: 'Show detailed help for a command',
+  description: 'Show help for a command',
+  usage: '.help [command]',
   async execute(sock, msg, args) {
-    const commandsDir = path.join(__dirname);
-    if (!args.length) {
-      const helpMsg = `*🆘 OngBak-Bot Help*
+    const jid = msg.key.remoteJid;
+    const prefix = config.commandPrefix;
 
-_Type .help <command> to get details about a specific command._`;
-      return sock.sendMessage(msg.key.remoteJid, { text: helpMsg }, { quoted: msg });
+    if (!args.length) {
+      const commands = listCommandNames().filter(name => name !== 'utils');
+      const helpMsg = `*🆘 ${config.botName} Help*
+
+Type *${prefix}help <command>* for details.
+Type *${prefix}menu* for the categorized command list.
+
+*Commands (${commands.length}):*
+${commands.map(name => `${prefix}${name}`).join(', ')}`;
+
+      return sock.sendMessage(jid, { text: helpMsg }, { quoted: msg });
     }
-    const cmdName = args[0].toLowerCase();
-    let cmdFile;
-    try {
-      cmdFile = require(path.join(commandsDir, cmdName + '.js'));
-    } catch (e) {
-      return sock.sendMessage(msg.key.remoteJid, { text: `No help found for *${cmdName}*.` }, { quoted: msg });
+
+    const cmdName = String(args[0] || '').toLowerCase();
+    const command = getCommandMetadata(cmdName);
+    if (!command) {
+      return sock.sendMessage(jid, { text: `No help found for *${cmdName}*.` }, { quoted: msg });
     }
-    let helpText = `*Command: .${cmdName}*\n`;
-    helpText += cmdFile.description ? `_${cmdFile.description}_\n` : '';
-    if (cmdFile.usage) helpText += `\n*Usage:*\n${cmdFile.usage}\n`;
-    return sock.sendMessage(msg.key.remoteJid, { text: helpText }, { quoted: msg });
-  },
-}; 
+
+    let helpText = `*Command: ${prefix}${cmdName}*\n`;
+    if (command.description) helpText += `_${command.description}_\n`;
+    if (command.usage) helpText += `\n*Usage:*\n${command.usage}\n`;
+
+    return sock.sendMessage(jid, { text: helpText }, { quoted: msg });
+  }
+};

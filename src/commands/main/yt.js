@@ -1,72 +1,48 @@
-const axios = require('axios');
-const { Downloader } = require('abot-scraper');
+const fs = require('fs');
 const { formatError, formatLoading, isValidYouTubeUrl } = require('../../lib/response-helper');
-const downloader = new Downloader();
+const ytdlp = require('../../lib/ytdlp');
 
 module.exports = {
   name: 'yt',
-  description: 'Download video YouTube',
+  description: 'Download a YouTube video (requires yt-dlp)',
   usage: '.yt <youtube_url>',
   async execute(sock, msg, args) {
+    const chatId = msg.key.remoteJid;
     const url = args[0];
     if (!url || !isValidYouTubeUrl(url)) {
-      return await sock.sendMessage(msg.key.remoteJid, {
+      return sock.sendMessage(chatId, {
         text: formatError('Invalid YouTube URL', 'Usage: .yt https://youtu.be/...')
       }, { quoted: msg });
     }
+
+    let downloaded = null;
     try {
-      const result = await downloader.youtubeDownloader(url);
-      if (result.status === 200 && result.result) {
-        // Pilih kualitas terendah yang tersedia
-        let videoUrl = null;
-        if (result.result.downloadLinks) {
-          videoUrl = result.result.downloadLinks['360p'] ||
-            result.result.downloadLinks['240p'] ||
-            result.result.downloadLinks['144p'] ||
-            result.result.downloadLinks['480p'] ||
-            result.result.downloadLinks['720p'] ||
-            result.result.downloadLinks['1080p'];
-        }
-        // Fallback ke result.result.video jika ada
-        if (!videoUrl && result.result.video) videoUrl = result.result.video;
-
-        if (!videoUrl) {
-          return await sock.sendMessage(msg.key.remoteJid, { text: 'Gagal: Tidak menemukan link video yang bisa diunduh.' }, { quoted: msg });
-        }
-
-        await sock.sendMessage(msg.key.remoteJid, { text: 'Berhasil! Mengirim video...' }, { quoted: msg });
-        const videoRes = await axios.get(videoUrl, {
-          responseType: 'arraybuffer',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-          }
-        });
-        if (videoRes.data.length > 100 * 1024 * 1024) {
-          return await sock.sendMessage(msg.key.remoteJid, { text: 'Gagal: Video terlalu besar untuk dikirim via WhatsApp (max 100MB).' }, { quoted: msg });
-        }
-        await sock.sendMessage(
-          msg.key.remoteJid,
-          {
-            video: Buffer.from(videoRes.data),
-            mimetype: 'video/mp4',
-            fileName: (result.result.title || 'youtube') + '.mp4',
-            caption: result.result.title || ''
-          },
-          { quoted: msg }
-        );
-      } else {
-        await sock.sendMessage(
-          msg.key.remoteJid,
-          { text: 'Gagal download: ' + (result.msg || JSON.stringify(result) || 'Unknown error') },
-          { quoted: msg }
-        );
+      if (!(await ytdlp.isAvailable())) {
+        return sock.sendMessage(chatId, {
+          text: 'YouTube video download is disabled because *yt-dlp* is not installed.\n\nInstall yt-dlp or use *.ytmp3* for audio.'
+        }, { quoted: msg });
       }
-    } catch (e) {
-      await sock.sendMessage(
-        msg.key.remoteJid,
-        { text: 'Error: ' + (e.message || JSON.stringify(e) || e) },
-        { quoted: msg }
-      );
+
+      await sock.sendMessage(chatId, { text: formatLoading('Downloading video...') }, { quoted: msg });
+      downloaded = await ytdlp.downloadVideo(url);
+
+      const buffer = await fs.promises.readFile(downloaded.path);
+      await sock.sendMessage(chatId, {
+        video: buffer,
+        mimetype: 'video/mp4',
+        fileName: 'youtube.mp4',
+        caption: 'YouTube video'
+      }, { quoted: msg });
+    } catch (error) {
+      console.error('yt error:', error.message);
+      const message = error.code === 'YT_DLP_NOT_INSTALLED'
+        ? 'YouTube video download requires *yt-dlp* on the server.'
+        : formatError('Download failed', error.message);
+      await sock.sendMessage(chatId, { text: message }, { quoted: msg });
+    } finally {
+      if (downloaded?.path) {
+        await fs.promises.rm(downloaded.path, { force: true }).catch(() => {});
+      }
     }
   }
-}; 
+};

@@ -1,66 +1,57 @@
 const axios = require('axios');
 const { Downloader } = require('abot-scraper');
-const fallbackDownloader = require('../../lib/fallback-downloader');
+
 const downloader = new Downloader();
 
 module.exports = {
   name: 'fb',
-  description: 'Download video Facebook',
+  description: 'Download Facebook video (experimental)',
+  usage: '.fb <facebook_url>',
   async execute(sock, msg, args) {
+    const chatId = msg.key.remoteJid;
     const url = args[0];
-    if (!url) return await sock.sendMessage(msg.key.remoteJid, { text: 'Masukkan link Facebook!\nContoh: .fb https://www.facebook.com/...' }, { quoted: msg });
+    if (!url) {
+      return sock.sendMessage(chatId, {
+        text: 'Masukkan link Facebook!\nContoh: .fb https://www.facebook.com/...'
+      }, { quoted: msg });
+    }
 
     try {
-      await sock.sendMessage(msg.key.remoteJid, { text: '⏳ Mengunduh video Facebook...' }, { quoted: msg });
+      const result = await downloader.facebookDownloader(url);
+      const data = result?.result || result?.data || {};
+      const videoUrl = data.videoUrl || data.url || data.hd || data.sd;
 
-      // Try primary API first
-      let result = await downloader.facebookDownloader(url);
-      let videoUrl = result.result?.videoUrl || result.result?.url || result.result?.hd || result.result?.sd;
-
-      // If primary fails, try fallback API
-      if (!videoUrl || result.status !== 200) {
-        console.log('FB: Primary API failed, trying fallback...');
-        result = await fallbackDownloader.facebookDownload(url);
-        videoUrl = result.result?.videoUrl || result.result?.hd || result.result?.sd;
+      if (!videoUrl) {
+        return sock.sendMessage(chatId, {
+          text: '❌ Facebook downloader sedang tidak tersedia (API pihak ketiga gagal). Coba lagi nanti.'
+        }, { quoted: msg });
       }
 
-      if (result.status === 200 && result.result && videoUrl) {
-        const videoRes = await axios.get(videoUrl, {
-          responseType: 'arraybuffer',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-          },
-          timeout: 60000
-        });
+      const video = await axios.get(videoUrl, {
+        responseType: 'arraybuffer',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        timeout: 60000,
+        maxContentLength: 100 * 1024 * 1024,
+        maxRedirects: 5
+      });
 
-        if (videoRes.data.length > 100 * 1024 * 1024) {
-          return await sock.sendMessage(msg.key.remoteJid, { text: '❌ Video terlalu besar (max 100MB).' }, { quoted: msg });
-        }
-
-        await sock.sendMessage(
-          msg.key.remoteJid,
-          {
-            video: Buffer.from(videoRes.data),
-            mimetype: 'video/mp4',
-            fileName: (result.result.title || 'facebook') + '.mp4',
-            caption: result.result.title || ''
-          },
-          { quoted: msg }
-        );
-      } else {
-        await sock.sendMessage(
-          msg.key.remoteJid,
-          { text: '❌ Gagal download: ' + (result.msg || 'Video tidak ditemukan') },
-          { quoted: msg }
-        );
+      if (video.data.length > 100 * 1024 * 1024) {
+        return sock.sendMessage(chatId, { text: '❌ Video terlalu besar (max 100MB).' }, { quoted: msg });
       }
-    } catch (e) {
-      console.error('FB download error:', e.message);
-      await sock.sendMessage(
-        msg.key.remoteJid,
-        { text: '❌ Error: ' + e.message },
-        { quoted: msg }
-      );
+
+      await sock.sendMessage(chatId, {
+        video: Buffer.from(video.data),
+        mimetype: 'video/mp4',
+        fileName: `${String(data.title || 'facebook').slice(0, 60)}.mp4`,
+        caption: data.title || ''
+      }, { quoted: msg });
+    } catch (error) {
+      console.error('FB download error:', error.message);
+      await sock.sendMessage(chatId, {
+        text: '❌ Facebook downloader sedang tidak tersedia. Platform membatasi akses API pihak ketiga.'
+      }, { quoted: msg });
     }
   }
 };

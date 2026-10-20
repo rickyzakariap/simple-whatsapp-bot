@@ -133,6 +133,7 @@ class CacheManager {
         console.log(`Cache: File changed, invalidating cache for ${filePath}`);
         this.cache.delete(cacheKey);
       });
+      watcher.unref?.();
       
       this.fileWatchers.set(filePath, watcher);
     } catch (error) {
@@ -147,6 +148,7 @@ class CacheManager {
     this.batchWriteInterval = setInterval(() => {
       this.flushWrites();
     }, 2000); // Write every 2 seconds
+    this.batchWriteInterval.unref?.();
   }
 
   /**
@@ -306,17 +308,9 @@ class CacheManager {
 const cacheManager = new CacheManager();
 
 // Cleanup every 5 minutes
-setInterval(() => {
+const cacheCleanupInterval = setInterval(() => {
   cacheManager.cleanup();
 }, 5 * 60 * 1000);
-
-// Graceful shutdown handling
-process.on('SIGINT', async () => {
-  await cacheManager.shutdown();
-});
-
-process.on('SIGTERM', async () => {
-  await cacheManager.shutdown();
-});
+cacheCleanupInterval.unref?.();
 
 module.exports = cacheManager;

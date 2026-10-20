@@ -1,5 +1,6 @@
 const words = ['komputer', 'program', 'javascript', 'whatsapp', 'bot', 'modular', 'teknologi', 'internet', 'database', 'aplikasi'];
 const games = {};
+const config = require('../../../config');
 const { addPoint } = require('./points');
 const timers = {};
 
@@ -20,8 +21,8 @@ module.exports = {
       timers[id] = setTimeout(() => {
         delete games[id];
         sock.sendMessage(id, { text: '⏰ Waktu habis! Game tebak kata berakhir.' });
-      }, 30000);
-      return sock.sendMessage(id, { text: `Tebak kata: ${games[id].scramble} (30 detik)` }, { quoted: msg });
+      }, config.games.tebakkata.timeout);
+      return sock.sendMessage(id, { text: `Tebak kata: ${games[id].scramble} (${config.games.tebakkata.timeout / 1000} detik)` }, { quoted: msg });
     }
     if (!games[id]) return sock.sendMessage(id, { text: 'Ketik .tebakkata start untuk mulai.' }, { quoted: msg });
     const guess = args[0]?.toLowerCase();
@@ -29,8 +30,8 @@ module.exports = {
     if (guess === games[id].word) {
       delete games[id];
       if (timers[id]) clearTimeout(timers[id]);
-      addPoint(id, msg.key.participant || msg.key.remoteJid, 5);
-      return sock.sendMessage(id, { text: 'Benar! 🎉 (+5 poin)' }, { quoted: msg });
+      await addPoint(id, msg.key.participant || msg.key.remoteJid, config.games.tebakkata.pointsForCorrect);
+      return sock.sendMessage(id, { text: `Benar! 🎉 (+${config.games.tebakkata.pointsForCorrect} poin)` }, { quoted: msg });
     } else {
       return sock.sendMessage(id, { text: 'Salah! Coba lagi.' }, { quoted: msg });
     }

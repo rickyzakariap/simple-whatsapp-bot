@@ -18,7 +18,7 @@ module.exports = {
       (user === 'gunting' && bot === 'kertas') ||
       (user === 'kertas' && bot === 'batu')
     ) {
-      addPoint(msg.key.remoteJid, msg.key.participant || msg.key.remoteJid, 2);
+      await addPoint(msg.key.remoteJid, msg.key.participant || msg.key.remoteJid, 2);
       result = 'Kamu menang! (+2 poin)';
     }
     else result = 'Bot menang!';

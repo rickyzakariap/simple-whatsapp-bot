@@ -12,15 +12,15 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Env
+# Environment
 .env
+.env.*
+!.env.example
 
-# Session/Cache/Temp
+# Session/cache/temp
 session/
 temp/
 .cache/
-
-# Baileys/whatsapp session
 .auth_info.json
 .wwebjs_cache/
 
@@ -32,26 +32,28 @@ temp/
 debug_*
 debug
 
-# Image editing & legacy folders
+# Runtime data (may contain personal data)
+data/
+uploads/
+alerts.json
+schedules.json
+birthdays.json
+points.json
+autoresponder.json
+welcome.json
+polls.json
+portfolio.json
+warnings.json
+
+# Legacy image editing folders
 Instagram-Video-Downloader-API/
 Instagram-Video-Downloader-API/snapsave-downloader/
 imagechanger/
 ai-edit/
-
-# Data files (keep only example/template)
-autoresponder.json
-points.json
-# Provide example if needed
-autoresponder.example.json
-points.example.json
-
-# Misc
-web-server.js
 public/
 public_backup/
-debug/
 
-# Exclude from tracking
+# Exclude VCS metadata folders
 *.git
 *.svn
-*.hg 
+*.hg

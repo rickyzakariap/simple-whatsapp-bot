@@ -3,71 +3,73 @@ const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 const { downloadMediaMessage } = require('@whiskeysockets/baileys');
+const { getQuotedMessage } = require('../../lib/message');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 module.exports = {
   name: 'toimg',
-  description: 'Convert sticker to image (PNG or JPG)',
+  description: 'Convert a sticker to an image (PNG or JPG)',
   usage: '.toimg [png|jpg] (reply to sticker)',
   async execute(sock, msg, args) {
-    const quoted = msg.message.extendedTextMessage?.contextInfo?.quotedMessage;
-    if (!quoted || !quoted.stickerMessage) {
-      return sock.sendMessage(msg.key.remoteJid, { text: 'Reply to a sticker with .toimg [png|jpg]' }, { quoted: msg });
-    }
-    const format = (args[0] && ['jpg', 'jpeg'].includes(args[0].toLowerCase())) ? 'jpg' : 'png';
-    const tempDir = path.join(__dirname, '../temp');
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
-    const stream = await downloadMediaMessage(
-      { key: msg.key, message: quoted },
-      sock
-    );
-    const chunks = [];
-    for await (const chunk of stream) {
-      chunks.push(chunk);
-    }
-    const buffer = Buffer.concat(chunks);
-    const tempInput = path.join(tempDir, `${Date.now()}.webp`);
-    let tempOutput = path.join(tempDir, `${Date.now()}.${format}`);
-    fs.writeFileSync(tempInput, buffer);
-    let success = true;
+    const chatId = msg.key.remoteJid;
+    let tempInput = null;
+    let tempOutput = null;
+
     try {
-      await new Promise((resolve, reject) => {
-        ffmpeg(tempInput)
-          .toFormat(format)
-          .save(tempOutput)
-          .on('end', resolve)
-          .on('error', reject);
-      });
-    } catch (e) {
-      console.log('ffmpeg error (main):', e);
-      if (format === 'jpg') {
-        // Fallback to PNG
-        tempOutput = tempOutput.replace(/\.jpg$/, '.png');
-        try {
-          await new Promise((resolve, reject) => {
-            ffmpeg(tempInput)
-              .toFormat('png')
-              .save(tempOutput)
-              .on('end', resolve)
-              .on('error', reject);
-          });
-          success = false;
-        } catch (err) {
-          console.log('ffmpeg error (fallback PNG):', err);
-          fs.unlinkSync(tempInput);
-          return sock.sendMessage(msg.key.remoteJid, { text: 'Failed to convert sticker to image.' }, { quoted: msg });
-        }
-      } else {
-        fs.unlinkSync(tempInput);
-        return sock.sendMessage(msg.key.remoteJid, { text: 'Failed to convert sticker to image.' }, { quoted: msg });
+      const quoted = getQuotedMessage(msg);
+      if (!quoted || !quoted.message.stickerMessage) {
+        return sock.sendMessage(chatId, { text: 'Reply to a sticker with .toimg [png|jpg]' }, { quoted: msg });
+      }
+
+      const format = ['jpg', 'jpeg'].includes((args[0] || '').toLowerCase()) ? 'jpg' : 'png';
+      const buffer = await downloadMediaMessage(
+        { key: quoted.key, message: quoted.message },
+        'buffer',
+        {},
+        sock
+      );
+      if (!buffer || buffer.length === 0) throw new Error('Empty sticker');
+
+      const tempDir = path.join(__dirname, '../temp');
+      await fs.promises.mkdir(tempDir, { recursive: true });
+      const unique = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      tempInput = path.join(tempDir, `${unique}.webp`);
+      tempOutput = path.join(tempDir, `${unique}.${format}`);
+      await fs.promises.writeFile(tempInput, buffer);
+
+      let sentFormat = format;
+      try {
+        await convert(tempInput, tempOutput, format);
+      } catch (error) {
+        if (format !== 'jpg') throw error;
+        sentFormat = 'png';
+        tempOutput = path.join(tempDir, `${unique}.png`);
+        await convert(tempInput, tempOutput, 'png');
+      }
+
+      const imageBuffer = await fs.promises.readFile(tempOutput);
+      await sock.sendMessage(chatId, {
+        image: imageBuffer,
+        caption: `Here is your image.${sentFormat === 'png' && format === 'jpg' ? ' (JPG not supported, sent as PNG)' : ''}`
+      }, { quoted: msg });
+    } catch (error) {
+      console.error('toimg error:', error.message);
+      await sock.sendMessage(chatId, { text: 'Failed to convert sticker to image.' }, { quoted: msg });
+    } finally {
+      for (const file of [tempInput, tempOutput]) {
+        if (file) await fs.promises.rm(file, { force: true }).catch(() => {});
       }
     }
-    const imgBuffer = fs.readFileSync(tempOutput);
-    await sock.sendMessage(msg.key.remoteJid, { image: imgBuffer, caption: `Here is your image.${success ? '' : ' (JPG not supported, sent as PNG)'}` }, { quoted: msg });
-    fs.unlinkSync(tempInput);
-    fs.unlinkSync(tempOutput);
-  },
-}; 
+  }
+};
+
+function convert(input, output, format) {
+  return new Promise((resolve, reject) => {
+    ffmpeg(input)
+      .toFormat(format)
+      .save(output)
+      .on('end', resolve)
+      .on('error', reject);
+  });
+}

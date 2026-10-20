@@ -1,5 +1,5 @@
 const performanceMonitor = require('../../lib/performance-monitor');
-const { isAdmin } = require('./utils');
+const { isOwnerOrGroupAdmin } = require('../../lib/permissions');
 
 module.exports = {
   name: 'performance',
@@ -7,11 +7,11 @@ module.exports = {
   usage: '.performance [summary|full|export]',
   async execute(sock, msg, args) {
     try {
-      const isUserAdmin = await isAdmin(sock, msg.key.remoteJid, msg.key.participant || msg.key.remoteJid);
-      
+      const isUserAdmin = await isOwnerOrGroupAdmin(sock, msg, msg.key.remoteJid);
+
       if (!isUserAdmin) {
-        return sock.sendMessage(msg.key.remoteJid, { 
-          text: '❌ This command is only available for group admins.' 
+        return sock.sendMessage(msg.key.remoteJid, {
+          text: '❌ This command is only available for the owner or group admins.'
         }, { quoted: msg });
       }
 

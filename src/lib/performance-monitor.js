@@ -32,6 +32,9 @@ class PerformanceMonitor {
     
     this.isMonitoring = true;
     console.log('Performance Monitor: Started');
+
+    // Collect an initial sample so the first summary has memory data.
+    this.collectSystemMetrics();
     
     // Memory and CPU monitoring every 30 seconds
     const systemInterval = setInterval(() => {
@@ -211,7 +214,7 @@ class PerformanceMonitor {
       commands: report.bot.commandsExecuted,
       errors: report.bot.errorsOccurred,
       avgResponseTime: report.bot.avgResponseTime,
-      memoryUsed: report.memory.rss,
+      memoryUsed: report.memory.rss || 'N/A',
       cacheHitRate: report.cache.hitRate,
       apiCacheHitRate: report.api.cacheHitRate
     };

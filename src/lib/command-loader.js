@@ -29,6 +29,18 @@ class CommandLoader {
     const startTime = Date.now();
     
     console.log('Command Loader: Initializing...');
+
+    // A reconnect calls initialize() again. Close the previous watcher and
+    // rebuild the maps so file watchers do not leak.
+    if (this.watcher) {
+      await this.watcher.close();
+      this.watcher = null;
+    }
+    this.commands.clear();
+    this.commandFiles.clear();
+    this.loadedCommands.clear();
+    this.stats.totalCommands = 0;
+    this.stats.loadedCommands = 0;
     
     // Scan for command files without loading them
     await this.scanCommandFiles();
@@ -89,10 +101,11 @@ class CommandLoader {
       }
       
       // Cache the loaded command
+      const wasLoaded = this.loadedCommands.has(commandName);
       this.commands.set(commandName, command);
       commandInfo.loaded = true;
       this.loadedCommands.add(commandName);
-      this.stats.loadedCommands++;
+      if (!wasLoaded) this.stats.loadedCommands++;
       
       console.log(`Command Loader: Loaded command '${commandName}'`);
       return command;
@@ -205,15 +218,20 @@ class CommandLoader {
         console.log(`Command Loader: Command removed '${commandName}'`);
         
         // Remove from all caches
+        const wasLoaded = this.loadedCommands.has(commandName);
         this.commandFiles.delete(commandName);
         this.commands.delete(commandName);
         this.loadedCommands.delete(commandName);
         
-        // Clear require cache
-        delete require.cache[require.resolve(filePath)];
+        // Clear require cache (the file may already be gone).
+        try {
+          delete require.cache[require.resolve(filePath)];
+        } catch {
+          // ignore
+        }
         
         this.stats.totalCommands--;
-        if (this.loadedCommands.has(commandName)) {
+        if (wasLoaded && this.stats.loadedCommands > 0) {
           this.stats.loadedCommands--;
         }
       }
@@ -233,11 +251,15 @@ class CommandLoader {
       
       // Clear require cache
       if (commandInfo) {
-        delete require.cache[require.resolve(commandInfo.filePath)];
+        try {
+          delete require.cache[require.resolve(commandInfo.filePath)];
+        } catch {
+          // Ignore a command file that already disappeared.
+        }
         commandInfo.loaded = false;
       }
       
-      this.stats.loadedCommands--;
+      if (this.stats.loadedCommands > 0) this.stats.loadedCommands--;
       console.log(`Command Loader: Unloaded command '${commandName}'`);
     }
   }
@@ -251,7 +273,11 @@ class CommandLoader {
     for (const commandName of this.loadedCommands) {
       const commandInfo = this.commandFiles.get(commandName);
       if (commandInfo) {
-        delete require.cache[require.resolve(commandInfo.filePath)];
+        try {
+          delete require.cache[require.resolve(commandInfo.filePath)];
+        } catch {
+          // Ignore commands whose files disappeared during shutdown.
+        }
         commandInfo.loaded = false;
       }
     }

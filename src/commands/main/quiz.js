@@ -1,3 +1,4 @@
+const config = require('../../../config');
 const { addPoint } = require('./points');
 const questions = [
   { q: 'Ibukota Indonesia?', a: 'jakarta' },
@@ -22,8 +23,8 @@ module.exports = {
       timers[id] = setTimeout(() => {
         delete games[id];
         sock.sendMessage(id, { text: '⏰ Waktu habis! Game quiz berakhir.' });
-      }, 30000);
-      return sock.sendMessage(id, { text: `Quiz: ${q.q} (30 detik)` }, { quoted: msg });
+      }, config.games.quiz.timeout);
+      return sock.sendMessage(id, { text: `Quiz: ${q.q} (${config.games.quiz.timeout / 1000} detik)` }, { quoted: msg });
     }
     if (!games[id]) return sock.sendMessage(id, { text: 'Ketik .quiz start untuk mulai.' }, { quoted: msg });
     const answer = args.join(' ').toLowerCase();
@@ -31,8 +32,8 @@ module.exports = {
     if (answer === games[id].a) {
       delete games[id];
       if (timers[id]) clearTimeout(timers[id]);
-      addPoint(id, msg.key.participant || msg.key.remoteJid, 5);
-      return sock.sendMessage(id, { text: 'Benar! 🎉 (+5 poin)' }, { quoted: msg });
+      await addPoint(id, msg.key.participant || msg.key.remoteJid, config.games.quiz.pointsForCorrect);
+      return sock.sendMessage(id, { text: `Benar! 🎉 (+${config.games.quiz.pointsForCorrect} poin)` }, { quoted: msg });
     } else {
       return sock.sendMessage(id, { text: 'Salah! Coba lagi.' }, { quoted: msg });
     }

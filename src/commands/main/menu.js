@@ -1,40 +1,18 @@
-const { getLeaderboard } = require('./points');
-const { commandPrefix } = require('../../../config');
+const config = require('../../../config');
+const { formatMenu } = require('../../lib/command-catalog');
 
 module.exports = {
   name: 'menu',
-  description: 'Show command list',
+  description: 'Show the command list',
+  usage: '.menu',
   async execute(sock, msg, args) {
-    const menu = `🤖 *OngBak-Bot Menu*
+    const menu = `🤖 *${config.botName} Menu*
+Timezone: ${config.timezone}
 
-*Basic*
-• .ping — Status bot
-• .help — Bantuan
-• .owner — Info owner
-• .berita [keyword] — Berita Indonesia dari Google News, bisa filter kata kunci (misal: .berita lowongan)
+${formatMenu(config.commandPrefix)}
 
-*Games*
-• .tebakangka — Tebak angka
-• .quiz — Kuis
-• .math — Matematika
+Type *${config.commandPrefix}help <command>* for details.`;
 
-*Tools*
-• .sticker — Sticker
-• .coin — Info crypto
-• .weather — Cuaca
-
-*Downloader*
-• .tiktok <url> — TikTok Video
-• .yt <url> — YouTube Video
-• .ytmp3 <url> — YouTube MP3
-• .ig <url> — Instagram Post/Reel
-• .fb <url> — Facebook Video
-
-*Group*
-• .add — Tambah member
-• .kick — Keluarkan member
-
-Ketik *.help <command>* untuk detail.`;
     await sock.sendMessage(msg.key.remoteJid, { text: menu }, { quoted: msg });
-  },
-}; 
+  }
+};
