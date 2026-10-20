@@ -1,42 +1,108 @@
-const fs = require('fs');
-const path = require('path');
-const dbPath = path.join(__dirname, '../../polls.json');
-function load() { if (!fs.existsSync(dbPath)) return {}; return JSON.parse(fs.readFileSync(dbPath)); }
-function save(data) { fs.writeFileSync(dbPath, JSON.stringify(data, null, 2)); }
+const database = require('../../lib/database');
+const { getSender, normalizeJid } = require('../../lib/permissions');
+
+async function vote(sock, msg, args) {
+  const chatId = msg.key.remoteJid;
+  const db = await database.load('polls');
+  const poll = db[chatId];
+  if (!poll) {
+    return sock.sendMessage(chatId, { text: 'No active poll.' }, { quoted: msg });
+  }
+
+  const input = args.join(' ').trim();
+  if (!input) {
+    return sock.sendMessage(chatId, { text: 'Specify your vote, e.g. .vote 1' }, { quoted: msg });
+  }
+
+  let option = null;
+  const numeric = Number(input);
+  if (Number.isInteger(numeric) && numeric >= 1 && numeric <= poll.options.length) {
+    option = poll.options[numeric - 1];
+  } else {
+    option = poll.options.find(item => item.toLowerCase() === input.toLowerCase()) || null;
+  }
+
+  if (!option) {
+    return sock.sendMessage(chatId, {
+      text: `Invalid option. Choose: ${poll.options.map((item, index) => `${index + 1}. ${item}`).join(' | ')}`
+    }, { quoted: msg });
+  }
+
+  poll.votes = poll.votes || {};
+  const voter = normalizeJid(getSender(msg) || chatId);
+  poll.votes[voter] = option;
+  db[chatId] = poll;
+  database.save('polls', db);
+
+  return sock.sendMessage(chatId, { text: `Vote recorded: ${option}` }, { quoted: msg });
+}
+
+async function results(sock, msg) {
+  const chatId = msg.key.remoteJid;
+  const db = await database.load('polls');
+  const poll = db[chatId];
+  if (!poll) {
+    return sock.sendMessage(chatId, { text: 'No active poll.' }, { quoted: msg });
+  }
+
+  const tally = Object.fromEntries(poll.options.map(option => [option, 0]));
+  Object.values(poll.votes || {}).forEach(option => {
+    if (tally[option] !== undefined) tally[option]++;
+  });
+
+  let text = `*Poll Results: ${poll.question}*\n`;
+  poll.options.forEach((option, index) => {
+    text += `${index + 1}. ${option}: ${tally[option]}\n`;
+  });
+  text += `\nTotal votes: ${Object.keys(poll.votes || {}).length}`;
+
+  return sock.sendMessage(chatId, { text }, { quoted: msg });
+}
 
 module.exports = {
   name: 'poll',
-  description: 'Start a poll: .poll <question>|<option1>|<option2>|... | .vote <option> | .pollresult',
+  description: 'Start a poll: .poll <question>|<option1>|<option2>|...',
   usage: '.poll <question>|<option1>|<option2>|... | .vote <option> | .pollresult',
+  vote,
+  results,
   async execute(sock, msg, args) {
-    const id = msg.key.remoteJid;
-    const db = load();
-    if (args[0] === 'vote') {
-      if (!db[id]) return sock.sendMessage(id, { text: 'No active poll.' }, { quoted: msg });
-      const option = args.slice(1).join(' ').trim();
-      if (!option) return sock.sendMessage(id, { text: 'Specify your vote.' }, { quoted: msg });
-      db[id].votes = db[id].votes || {};
-      db[id].votes[msg.key.participant || msg.key.remoteJid] = option;
-      save(db);
-      return sock.sendMessage(id, { text: 'Vote recorded.' }, { quoted: msg });
+    const chatId = msg.key.remoteJid;
+    const cmd = args[0]?.toLowerCase();
+
+    if (cmd === 'vote') return vote(sock, msg, args.slice(1));
+    if (cmd === 'pollresult' || cmd === 'results' || cmd === 'result') return results(sock, msg);
+
+    if (cmd === 'close') {
+      const db = await database.load('polls');
+      if (!db[chatId]) {
+        return sock.sendMessage(chatId, { text: 'No active poll.' }, { quoted: msg });
+      }
+      delete db[chatId];
+      database.save('polls', db);
+      return sock.sendMessage(chatId, { text: 'Poll closed.' }, { quoted: msg });
     }
-    if (args[0] === 'pollresult') {
-      if (!db[id]) return sock.sendMessage(id, { text: 'No active poll.' }, { quoted: msg });
-      const poll = db[id];
-      const tally = {};
-      Object.values(poll.votes || {}).forEach(v => { tally[v] = (tally[v] || 0) + 1; });
-      let text = `*Poll Results: ${poll.question}*\n`;
-      poll.options.forEach(opt => { text += `- ${opt}: ${tally[opt] || 0}\n`; });
-      return sock.sendMessage(id, { text }, { quoted: msg });
+
+    const parts = args.join(' ').split('|').map(part => part.trim()).filter(Boolean);
+    if (parts.length < 3) {
+      return sock.sendMessage(chatId, {
+        text: 'Usage: .poll <question>|<option1>|<option2>|...\nExample: .poll Makan apa?|Nasi|Mie|Sate'
+      }, { quoted: msg });
     }
-    // Start a new poll
-    const parts = args.join(' ').split('|').map(s => s.trim()).filter(Boolean);
-    if (parts.length < 3) return sock.sendMessage(id, { text: 'Usage: .poll <question>|<option1>|<option2>|...', quoted: msg });
-    db[id] = { question: parts[0], options: parts.slice(1), votes: {} };
-    save(db);
+
+    const db = await database.load('polls');
+    db[chatId] = {
+      question: parts[0],
+      options: parts.slice(1),
+      votes: {},
+      createdAt: new Date().toISOString()
+    };
+    database.save('polls', db);
+
     let text = `*Poll Started: ${parts[0]}*\n`;
-    parts.slice(1).forEach((opt, i) => { text += `${i + 1}. ${opt}\n`; });
-    text += '\nVote with .vote <option>';
-    await sock.sendMessage(id, { text }, { quoted: msg });
-  },
-}; 
+    parts.slice(1).forEach((option, index) => {
+      text += `${index + 1}. ${option}\n`;
+    });
+    text += '\nVote with .vote <number or option>';
+    await sock.sendMessage(chatId, { text }, { quoted: msg });
+  }
+};

@@ -1,95 +1,83 @@
-const fs = require('fs');
-const path = require('path');
-const dbPath = path.join(__dirname, '../../../welcome.json');
+const database = require('../../lib/database');
+const config = require('../../../config');
+const { isGroup, getSender, isGroupAdmin, isOwner } = require('../../lib/permissions');
 
-function load() { 
-  try {
-    if (!fs.existsSync(dbPath)) return {}; 
-    return JSON.parse(fs.readFileSync(dbPath));
-  } catch (error) {
-    console.error('Error loading welcome database:', error);
-    return {};
-  }
+async function canManage(sock, msg, chatId) {
+  return isGroup(chatId) && (isOwner(sock, msg) || await isGroupAdmin(sock, chatId, getSender(msg)));
 }
 
-function save(data) { 
-  try {
-    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('Error saving welcome database:', error);
-  }
+async function setWelcome(chatId, message) {
+  const db = await database.load('welcome');
+  db[chatId] = db[chatId] || {};
+  db[chatId].welcome = message;
+  database.save('welcome', db);
+}
+
+async function setGoodbye(chatId, message) {
+  const db = await database.load('welcome');
+  db[chatId] = db[chatId] || {};
+  db[chatId].goodbye = message;
+  database.save('welcome', db);
+}
+
+async function getWelcome(chatId) {
+  const db = await database.load('welcome');
+  return db[chatId]?.welcome || null;
+}
+
+async function getGoodbye(chatId) {
+  const db = await database.load('welcome');
+  return db[chatId]?.goodbye || null;
 }
 
 module.exports = {
   name: 'welcome',
-  description: 'Show or set custom welcome/goodbye messages (admin only)',
-  usage: '.setwelcome <msg> | .setgoodbye <msg> | .welcome | .goodbye',
+  description: 'Show or set welcome/goodbye messages (group admin only)',
+  usage: '.welcome | .welcome goodbye | .setwelcome <message> | .setgoodbye <message>',
+  getWelcome,
+  getGoodbye,
+  setWelcome,
+  setGoodbye,
   async execute(sock, msg, args) {
+    const chatId = msg.key.remoteJid;
     try {
-      const id = msg.key.remoteJid;
-      const isAdmin = msg.participant || msg.key.participant;
-      const db = load();
+      if (!isGroup(chatId)) {
+        return sock.sendMessage(chatId, { text: 'This command can only be used in groups.' }, { quoted: msg });
+      }
+
       const cmd = args[0]?.toLowerCase();
-      
-      if (cmd === 'setwelcome') {
-        if (!isAdmin) return sock.sendMessage(id, { text: 'Admin only.' }, { quoted: msg });
-        const message = args.slice(1).join(' ');
-        if (!message) return sock.sendMessage(id, { text: 'Usage: .setwelcome <message>' }, { quoted: msg });
-        
-        // Input validation
-        if (message.length > 1000) {
-          return sock.sendMessage(id, { text: 'Welcome message too long. Maximum 1000 characters.' }, { quoted: msg });
+      const isSetCommand = ['setwelcome', 'setgoodbye'].includes(cmd);
+      if (isSetCommand) {
+        if (!(await canManage(sock, msg, chatId))) {
+          return sock.sendMessage(chatId, { text: 'Only admins can use this command.' }, { quoted: msg });
         }
-        
-        db[id] = db[id] || {};
-        db[id].welcome = message;
-        save(db);
-        return sock.sendMessage(id, { text: 'Welcome message set.' }, { quoted: msg });
-      }
-      
-      if (cmd === 'setgoodbye') {
-        if (!isAdmin) return sock.sendMessage(id, { text: 'Admin only.' }, { quoted: msg });
-        const message = args.slice(1).join(' ');
-        if (!message) return sock.sendMessage(id, { text: 'Usage: .setgoodbye <message>' }, { quoted: msg });
-        
-        // Input validation
-        if (message.length > 1000) {
-          return sock.sendMessage(id, { text: 'Goodbye message too long. Maximum 1000 characters.' }, { quoted: msg });
+
+        const message = args.slice(1).join(' ').trim();
+        if (!message) {
+          return sock.sendMessage(chatId, { text: `Usage: .${cmd} <message>` }, { quoted: msg });
         }
-        
-        db[id] = db[id] || {};
-        db[id].goodbye = message;
-        save(db);
-        return sock.sendMessage(id, { text: 'Goodbye message set.' }, { quoted: msg });
+        if (message.length > config.validation.maxMessageLength) {
+          return sock.sendMessage(chatId, {
+            text: `Message too long. Maximum ${config.validation.maxMessageLength} characters.`
+          }, { quoted: msg });
+        }
+
+        if (cmd === 'setwelcome') {
+          await setWelcome(chatId, message);
+          return sock.sendMessage(chatId, { text: 'Welcome message set.' }, { quoted: msg });
+        }
+        await setGoodbye(chatId, message);
+        return sock.sendMessage(chatId, { text: 'Goodbye message set.' }, { quoted: msg });
       }
-      
-      if (cmd === 'goodbye') {
-        return sock.sendMessage(id, { text: db[id]?.goodbye || 'No goodbye message set.' }, { quoted: msg });
-      }
-      
-      // Default: show welcome
-      return sock.sendMessage(id, { text: db[id]?.welcome || 'No welcome message set.' }, { quoted: msg });
+
+      const type = cmd === 'goodbye' || cmd === 'setgoodbye' ? 'goodbye' : 'welcome';
+      const message = type === 'goodbye' ? await getGoodbye(chatId) : await getWelcome(chatId);
+      return sock.sendMessage(chatId, {
+        text: message || `No ${type} message set.`
+      }, { quoted: msg });
     } catch (error) {
       console.error('Welcome command error:', error);
-      return sock.sendMessage(msg.key.remoteJid, { text: '❌ Error: Failed to process welcome command.' }, { quoted: msg });
-    }
-  },
-  getWelcome(id) { 
-    try {
-      const db = load(); 
-      return db[id]?.welcome; 
-    } catch (error) {
-      console.error('Error getting welcome message:', error);
-      return null;
-    }
-  },
-  getGoodbye(id) { 
-    try {
-      const db = load(); 
-      return db[id]?.goodbye; 
-    } catch (error) {
-      console.error('Error getting goodbye message:', error);
-      return null;
+      return sock.sendMessage(msg.key.remoteJid, { text: '❌ Failed to process welcome command.' }, { quoted: msg });
     }
   }
-}; 
+};

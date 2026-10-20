@@ -1,4 +1,4 @@
-const axios = require('axios');
+const apiManager = require('../../lib/api-manager');
 
 module.exports = {
   name: 'topgainers',
@@ -6,15 +6,16 @@ module.exports = {
   usage: '.topgainers',
   async execute(sock, msg, args) {
     try {
-      const { data } = await axios.get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&price_change_percentage=24h');
-      const sorted = data.sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h).slice(0, 5);
+      const data = await apiManager.getTopGainers(5);
       let text = '*Top 5 Gainers (24h):*\n';
-      sorted.forEach((coin, i) => {
-        text += `${i + 1}. ${coin.name} (${coin.symbol.toUpperCase()}): $${coin.current_price} (+${coin.price_change_percentage_24h.toFixed(2)}%)\n`;
+      (data || []).forEach((coin, index) => {
+        const change = Number(coin.price_change_percentage_24h || 0);
+        text += `${index + 1}. ${coin.name} (${coin.symbol.toUpperCase()}): $${coin.current_price} (${change >= 0 ? '+' : ''}${change.toFixed(2)}%)\n`;
       });
       await sock.sendMessage(msg.key.remoteJid, { text }, { quoted: msg });
-    } catch (e) {
+    } catch (error) {
+      console.error('Top gainers error:', error.message);
       await sock.sendMessage(msg.key.remoteJid, { text: 'Failed to fetch top gainers.' }, { quoted: msg });
     }
-  },
-}; 
+  }
+};

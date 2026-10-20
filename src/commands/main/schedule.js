@@ -1,79 +1,89 @@
-const fs = require('fs');
-const path = require('path');
-const dbPath = path.join(__dirname, '../../../schedules.json');
-
-function load() { 
-  try {
-    if (!fs.existsSync(dbPath)) return {}; 
-    return JSON.parse(fs.readFileSync(dbPath));
-  } catch (error) {
-    console.error('Error loading schedules database:', error);
-    return {};
-  }
-}
-
-function save(data) { 
-  try {
-    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error('Error saving schedules database:', error);
-  }
-}
+const database = require('../../lib/database');
+const config = require('../../../config');
+const { isGroup, getSender, isGroupAdmin, isOwner } = require('../../lib/permissions');
+const { getDateParts } = require('../../lib/time');
 
 module.exports = {
   name: 'schedule',
-  description: 'Schedule messages: .schedule <HH:MM> <message>, .schedule list, .schedule remove <id>',
+  description: 'Schedule a daily message (group admins only in groups)',
   usage: '.schedule <HH:MM> <message> | .schedule list | .schedule remove <id>',
   async execute(sock, msg, args) {
     try {
-      const id = msg.key.remoteJid;
-      const db = load();
+      const chatId = msg.key.remoteJid;
+      if (isGroup(chatId) && !isOwner(sock, msg) && !(await isGroupAdmin(sock, chatId, getSender(msg)))) {
+        return sock.sendMessage(chatId, { text: 'Only admins can schedule messages in this group.' }, { quoted: msg });
+      }
+
+      const db = await database.load('schedules');
       const cmd = args[0]?.toLowerCase();
-      
+
       if (cmd === 'list') {
-        const list = db[id] || [];
-        if (!list.length) return sock.sendMessage(id, { text: 'No scheduled messages.' }, { quoted: msg });
-        let text = '*Scheduled Messages:*\n';
-        list.forEach((s, i) => { text += `${i + 1}. ${s.time} - ${s.message}\n`; });
-        return sock.sendMessage(id, { text }, { quoted: msg });
+        const list = db[chatId] || [];
+        if (!list.length) {
+          return sock.sendMessage(chatId, { text: 'No scheduled messages.' }, { quoted: msg });
+        }
+        let text = `*Scheduled Messages* (${config.timezone}):\n`;
+        list.forEach((schedule, index) => {
+          text += `${index + 1}. [${schedule.id || index + 1}] ${schedule.time} - ${schedule.message}\n`;
+        });
+        return sock.sendMessage(chatId, { text }, { quoted: msg });
       }
-      
+
       if (cmd === 'remove') {
-        const idx = parseInt(args[1]) - 1;
-        if (isNaN(idx) || idx < 0) return sock.sendMessage(id, { text: 'Usage: .schedule remove <id> (id must be a positive number)' }, { quoted: msg });
-        if (!db[id] || idx >= db[id].length) return sock.sendMessage(id, { text: 'Invalid schedule ID.' }, { quoted: msg });
-        db[id] = (db[id] || []).filter((_, i) => i !== idx);
-        save(db);
-        return sock.sendMessage(id, { text: 'Schedule removed.' }, { quoted: msg });
+        const list = db[chatId] || [];
+        const identifier = args[1];
+        if (!identifier) {
+          return sock.sendMessage(chatId, { text: 'Usage: .schedule remove <id>' }, { quoted: msg });
+        }
+
+        const index = list.findIndex(schedule => schedule.id === identifier);
+        const fallbackIndex = Number(identifier) - 1;
+        const removeIndex = index >= 0 ? index : fallbackIndex;
+        if (!Number.isInteger(removeIndex) || removeIndex < 0 || removeIndex >= list.length) {
+          return sock.sendMessage(chatId, { text: 'Invalid schedule ID.' }, { quoted: msg });
+        }
+
+        list.splice(removeIndex, 1);
+        if (list.length) db[chatId] = list;
+        else delete db[chatId];
+        database.save('schedules', db);
+        return sock.sendMessage(chatId, { text: 'Schedule removed.' }, { quoted: msg });
       }
-      
-      // Add schedule
+
       const time = args[0];
-      const message = args.slice(1).join(' ');
-      
-      // Input validation
-      if (!/^\d{2}:\d{2}$/.test(time) || !message) {
-        return sock.sendMessage(id, { text: 'Usage: .schedule <HH:MM> <message>' }, { quoted: msg });
+      const message = args.slice(1).join(' ').trim();
+      if (!/^\d{2}:\d{2}$/.test(time || '') || !message) {
+        return sock.sendMessage(chatId, {
+          text: 'Usage: .schedule <HH:MM> <message>\nExample: .schedule 08:00 Selamat pagi!'
+        }, { quoted: msg });
       }
-      
-      // Validate time format
+
       const [hours, minutes] = time.split(':').map(Number);
       if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-        return sock.sendMessage(id, { text: 'Invalid time format. Use HH:MM (00:00-23:59)' }, { quoted: msg });
+        return sock.sendMessage(chatId, { text: 'Invalid time. Use HH:MM (00:00-23:59).' }, { quoted: msg });
       }
-      
-      // Validate message length
-      if (message.length > 1000) {
-        return sock.sendMessage(id, { text: 'Message too long. Maximum 1000 characters.' }, { quoted: msg });
+      if (message.length > config.validation.maxMessageLength) {
+        return sock.sendMessage(chatId, {
+          text: `Message too long. Maximum ${config.validation.maxMessageLength} characters.`
+        }, { quoted: msg });
       }
-      
-      db[id] = db[id] || [];
-      db[id].push({ time, message });
-      save(db);
-      return sock.sendMessage(id, { text: `Scheduled message set for ${time}.` }, { quoted: msg });
+
+      db[chatId] = db[chatId] || [];
+      db[chatId].push({
+        id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+        time,
+        message,
+        lastSent: null
+      });
+      database.save('schedules', db);
+
+      const now = getDateParts(new Date(), config.timezone);
+      return sock.sendMessage(chatId, {
+        text: `Scheduled message set for ${time} (${config.timezone}).\nCurrent local time: ${now.hhmm}`
+      }, { quoted: msg });
     } catch (error) {
       console.error('Schedule command error:', error);
       return sock.sendMessage(msg.key.remoteJid, { text: '❌ Error: Failed to process schedule command.' }, { quoted: msg });
     }
-  },
-}; 
+  }
+};

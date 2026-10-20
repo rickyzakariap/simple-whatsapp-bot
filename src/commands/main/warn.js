@@ -1,18 +1,34 @@
-const warnings = {};
+const database = require('../../lib/database');
+const { isGroup, getSender, getTargetJid, isGroupAdmin, isOwner, mentionJid } = require('../../lib/permissions');
 
 module.exports = {
   name: 'warn',
   description: 'Warn a member (admin only)',
+  usage: '.warn @user [reason]',
   async execute(sock, msg, args) {
-    if (!msg.key.remoteJid.endsWith('@g.us')) {
-      return sock.sendMessage(msg.key.remoteJid, { text: 'This command can only be used in groups.' }, { quoted: msg });
+    const jid = msg.key.remoteJid;
+    if (!isGroup(jid)) {
+      return sock.sendMessage(jid, { text: 'This command can only be used in groups.' }, { quoted: msg });
     }
-    if (!msg.message.extendedTextMessage?.contextInfo?.mentionedJid?.length) {
-      return sock.sendMessage(msg.key.remoteJid, { text: 'Tag the user you want to warn.' }, { quoted: msg });
+    if (!isOwner(sock, msg) && !(await isGroupAdmin(sock, jid, getSender(msg)))) {
+      return sock.sendMessage(jid, { text: 'Only admins can use this command.' }, { quoted: msg });
     }
-    const target = msg.message.extendedTextMessage.contextInfo.mentionedJid[0];
-    warnings[target] = (warnings[target] || 0) + 1;
-    await sock.sendMessage(msg.key.remoteJid, { text: `@${target.split('@')[0]} has been warned (${warnings[target]}).`, mentions: [target] }, { quoted: msg });
-  },
-  warnings,
-}; 
+
+    const target = getTargetJid(msg, args);
+    if (!target) {
+      return sock.sendMessage(jid, { text: 'Tag or reply to the user you want to warn.' }, { quoted: msg });
+    }
+
+    const warnings = await database.load('warnings');
+    warnings[jid] = warnings[jid] || {};
+    warnings[jid][target] = (warnings[jid][target] || 0) + 1;
+    database.save('warnings', warnings);
+
+    const reason = args.filter(arg => !arg.includes('@')).join(' ').trim();
+    const suffix = reason ? `\nReason: ${reason}` : '';
+    await sock.sendMessage(jid, {
+      text: `${mentionJid(target)} has been warned (${warnings[jid][target]}).${suffix}`,
+      mentions: [target]
+    }, { quoted: msg });
+  }
+};
