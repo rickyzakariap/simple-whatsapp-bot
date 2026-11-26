@@ -23,7 +23,7 @@ module.exports = {
       if (timers[id]) clearTimeout(timers[id]);
       timers[id] = setTimeout(() => {
         delete games[id];
-        sock.sendMessage(id, { text: '⏰ Waktu habis! Game math challenge berakhir.' });
+        sock.sendMessage(id, { text: '⏰ Waktu habis! Game math challenge berakhir.' }).catch(() => {});
       }, config.games.quiz.timeout);
       return sock.sendMessage(id, { text: `Soal: ${games[id].q} (${config.games.quiz.timeout / 1000} detik)` }, { quoted: msg });
     }

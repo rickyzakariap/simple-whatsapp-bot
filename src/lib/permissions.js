@@ -96,15 +96,11 @@ function getOwnerJids(sock) {
 }
 
 function isOwner(sock, msg) {
-  const candidates = [
-    msg && msg.key && msg.key.participant,
-    msg && msg.key && msg.key.participantAlt,
-    msg && msg.key && msg.key.remoteJid,
-    msg && msg.key && msg.key.remoteJidAlt
-  ].filter(Boolean);
-
-  if (candidates.length === 0) return false;
-
+  const key = msg?.key;
+  if (!key) return false;
+  const candidates = isGroup(key.remoteJid)
+    ? [key.participant, key.participantAlt, key.participantPn, key.participantLid]
+    : [key.participant, key.remoteJid, key.remoteJidAlt, key.senderPn, key.senderLid];
   const ownerJids = getOwnerJids(sock);
   return candidates.some(candidate => ownerJids.some(owner => sameJid(candidate, owner)));
 }
@@ -133,7 +129,7 @@ function findParticipant(metadata, jid) {
   if (!target) return null;
 
   return metadata.participants.find(participant => {
-    return [participant.id, participant.lid, participant.phoneNumber]
+    return [participant.id, participant.jid, participant.lid, participant.phoneNumber]
       .filter(Boolean)
       .some(value => sameJid(value, target));
   }) || null;
@@ -159,7 +155,10 @@ async function isBotAdmin(sock, groupJid) {
 
 async function isOwnerOrGroupAdmin(sock, msg, groupJid) {
   if (isOwner(sock, msg)) return true;
-  return isGroupAdmin(sock, groupJid, getSender(msg));
+  const participant = findParticipant(await getGroupMetadata(sock, groupJid), getSender(msg));
+  return participantIsAdmin(participant) || Boolean(participant && getOwnerJids(sock).some(owner =>
+    [participant.id, participant.jid, participant.lid, participant.phoneNumber].some(value => sameJid(value, owner))
+  ));
 }
 
 function phoneToJid(input, defaultCountryCode = '62') {

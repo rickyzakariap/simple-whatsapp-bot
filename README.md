@@ -11,7 +11,7 @@ A modular WhatsApp bot built with [Baileys](https://github.com/WhiskeySockets/Ba
 - Node.js **20 or newer**
 - npm 10 or newer
 - A WhatsApp account for the bot
-- Optional: [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) for `.yt` video downloads
+- Optional: [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) for `.tiktok` and `.yt` video downloads
 
 `ffmpeg-static` is installed with npm, so a separate FFmpeg installation is not required.
 
@@ -41,7 +41,11 @@ Start the bot:
 npm start
 ```
 
-Scan the QR code with WhatsApp on the first run. The login session is stored in `session/` and is ignored by git.
+On the first run, set `PAIRING_PHONE` to the **bot account's** number in international format. The default `PAIRING_MODE=code` prints a temporary code in a private terminal. In WhatsApp, open **Linked devices → Link a device → Link with phone number** and enter the code there. Set `PAIRING_MODE=qr` to scan a QR code instead; QR mode does not require `PAIRING_PHONE`.
+
+Wait for `OngBak-Bot is ready!` before stopping the process. The linked session is stored in `session/` by default and is reused on restart. Do not share pairing codes, QR codes, or session files.
+
+For an unattended deployment, complete pairing in the foreground, stop the foreground instance, then run `pm2 start ecosystem.config.js`. Run PM2 with a supported Node version on `PATH`, or set `NODE_BINARY` to the Node executable before starting it. Keep one bot process per session. Use `pm2 logs ongbak-bot` to inspect logs and `pm2 save` to save the process list.
 
 For development with automatic restart:
 
@@ -69,7 +73,7 @@ The test suite uses Node's built-in test runner and does not connect to WhatsApp
 | --- | --- |
 | `.menu`, `.help` | Command list and per-command help |
 | `.ping`, `.owner` | Bot status and owner info |
-| `.tiktok <url>` | TikTok video downloader |
+| `.tiktok <url>` | Public TikTok video downloader; requires `yt-dlp` |
 | `.ytmp3 <url>` | YouTube audio downloader |
 | `.ytsearch <query>` | YouTube search |
 | `.sticker` | Convert a replied image/video or image URL to a sticker |
@@ -100,8 +104,8 @@ The test suite uses Node's built-in test runner and does not connect to WhatsApp
 
 | Command | Notes |
 | --- | --- |
-| `.yt <url>` | Requires `yt-dlp` on the server. Without it, the bot replies with installation instructions. |
-| `.ig <url>` | Depends on a third-party scraper and may stop working without notice. |
+| `.yt <url>` | Requires `yt-dlp` and a single HTTPS video URL. Reports when YouTube requires sign-in; it does not bypass that restriction. |
+| `.ig <url>` | Downloads photos and videos from publicly embeddable posts and Reels, up to 10 items per command. Private posts and Stories are not supported. |
 | `.fb <url>` | Depends on a third-party scraper and may stop working without notice. |
 
 ### Disabled
@@ -124,6 +128,8 @@ See `.env.example` for the full list.
 | `OWNER_NAME` | `Ong-Bak` | Owner display name |
 | `OWNER_GITHUB` | `rickyzakariap` | GitHub username shown by `.owner` |
 | `COMMAND_PREFIX` | `.` | Text command prefix |
+| `PAIRING_MODE` | `code` | First login: `code` or `qr` |
+| `PAIRING_PHONE` | empty | Bot account in international format, needed for a new code-based login |
 | `SESSION_NAME` | `session` | Baileys session directory |
 | `TIMEZONE` | `Asia/Jakarta` | Timezone for schedules and birthdays |
 | `YTDLP_PATH` | `yt-dlp` | Path to the optional yt-dlp binary |
@@ -187,9 +193,9 @@ The legacy `web-server.js` and its unused Express/Sharp/Multer stack were remove
 
 ## Troubleshooting
 
-- **QR not appearing:** delete the `session/` directory and run `npm start` again.
-- **`.yt` says yt-dlp is not installed:** install it with `pip install -U yt-dlp` or set `YTDLP_PATH`.
-- **Download API failures:** third-party scrapers change frequently. Prefer `.tiktok`, `.ytmp3`, and `.ytsearch`, which are tested.
+- **No QR on first login:** QR is opt-in. Set `PAIRING_MODE=qr` and run `npm start` in a private terminal. An existing linked session does not prompt for a new code or QR.
+- **`.tiktok` or `.yt` says yt-dlp is not installed:** install it with `pip install -U yt-dlp` or set `YTDLP_PATH` to the executable.
+- **Instagram or YouTube download fails:** Instagram needs a publicly embeddable post or Reel. YouTube may require sign-in for downloads from some servers; the bot reports that restriction.
 - **`npm ci` fails:** make sure you are using the committed lockfile and Node.js 20+.
 
 ---

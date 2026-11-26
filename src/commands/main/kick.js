@@ -23,7 +23,10 @@ module.exports = {
     }
 
     try {
-      await sock.groupParticipantsUpdate(jid, [target], 'remove');
+      const [result] = await sock.groupParticipantsUpdate(jid, [target], 'remove');
+      if (String(result?.status) !== '200') {
+        return sock.sendMessage(jid, { text: `Could not remove ${mentionJid(target)} (status: ${result?.status || 'unknown'}).`, mentions: [target] }, { quoted: msg });
+      }
       await sock.sendMessage(jid, {
         text: `Removed ${mentionJid(target)}.`,
         mentions: [target]

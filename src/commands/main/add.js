@@ -23,9 +23,9 @@ module.exports = {
     }
 
     try {
-      const result = await sock.groupParticipantsUpdate(jid, [target], 'add');
-      const status = Array.isArray(result) ? result[0]?.status : null;
-      if (status && status !== '200') {
+      const [result] = await sock.groupParticipantsUpdate(jid, [target], 'add');
+      const status = String(result?.status || 'unknown');
+      if (status !== '200') {
         return sock.sendMessage(jid, {
           text: `Could not add ${mentionJid(target)} (status: ${status}). They may have privacy settings enabled.`,
           mentions: [target]

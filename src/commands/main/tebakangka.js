@@ -14,13 +14,15 @@ module.exports = {
       if (timers[id]) clearTimeout(timers[id]);
       timers[id] = setTimeout(() => {
         delete games[id];
-        sock.sendMessage(id, { text: '⏰ Waktu habis! Game tebak angka berakhir.' });
+        sock.sendMessage(id, { text: '⏰ Waktu habis! Game tebak angka berakhir.' }).catch(() => {});
       }, config.games.tebakangka.timeout);
       return sock.sendMessage(id, { text: `Game dimulai! Tebak angka antara 1-100. (${config.games.tebakangka.timeout / 1000} detik)` }, { quoted: msg });
     }
     if (!games[id]) return sock.sendMessage(id, { text: 'Ketik .tebakangka start untuk mulai.' }, { quoted: msg });
-    const guess = parseInt(args[0]);
-    if (isNaN(guess)) return sock.sendMessage(id, { text: 'Masukkan angka tebakan.' }, { quoted: msg });
+    if (!/^\d{1,3}$/.test(args[0] || '') || Number(args[0]) < 1 || Number(args[0]) > 100) {
+      return sock.sendMessage(id, { text: 'Masukkan angka tebakan dari 1 sampai 100.' }, { quoted: msg });
+    }
+    const guess = Number(args[0]);
     games[id].tries++;
     if (guess === games[id].number) {
       const tries = games[id].tries;

@@ -118,7 +118,8 @@ class ConnectionHealthMonitor {
         }
 
         // Check if socket is still connected
-        if (sock && sock.ws && sock.ws.readyState !== 1) { // 1 = WebSocket.OPEN
+        const ws = sock?.ws;
+        if (ws && (typeof ws.isOpen === 'boolean' ? !ws.isOpen : typeof ws.readyState === 'number' && ws.readyState !== 1)) {
             console.warn('Connection Health: WebSocket not in OPEN state');
         }
     }

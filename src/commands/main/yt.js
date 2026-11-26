@@ -34,15 +34,16 @@ module.exports = {
         caption: 'YouTube video'
       }, { quoted: msg });
     } catch (error) {
-      console.error('yt error:', error.message);
-      const message = error.code === 'YT_DLP_NOT_INSTALLED'
-        ? 'YouTube video download requires *yt-dlp* on the server.'
-        : formatError('Download failed', error.message);
+      const loginRequired = /sign in to confirm|login required|log in to access/i.test(error.stderr || error.message || '');
+      console.error('YouTube download/send failed:', loginRequired ? 'LOGIN_REQUIRED' : (error.code || error.name));
+      const message = loginRequired
+        ? 'YouTube meminta login dari server ini. Video belum bisa diunduh.'
+        : error.code === 'YT_DLP_NOT_INSTALLED'
+          ? 'YouTube video download requires *yt-dlp* on the server.'
+          : formatError('Video YouTube tidak bisa diunduh atau dikirim.');
       await sock.sendMessage(chatId, { text: message }, { quoted: msg });
     } finally {
-      if (downloaded?.path) {
-        await fs.promises.rm(downloaded.path, { force: true }).catch(() => {});
-      }
+      if (downloaded) await downloaded.cleanup().catch(() => {});
     }
   }
 };
