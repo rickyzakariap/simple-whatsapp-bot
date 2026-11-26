@@ -63,6 +63,9 @@ class CommandLoader {
         if (file.endsWith('.js')) {
           const filePath = path.join(this.commandsDir, file);
           const commandName = path.basename(file, '.js');
+          // utils.js itu helper bareng, bukan command yang bisa dipanggil user.
+          // Sengaja dilewati supaya `.utils` gak muncul sebagai command palsu.
+          if (commandName === 'utils') continue;
           
           this.commandFiles.set(commandName, {
             filePath,
@@ -177,18 +180,24 @@ class CommandLoader {
 
     this.watcher.on('change', async (filePath) => {
       const commandName = path.basename(filePath, '.js');
-      
+
       if (this.commandFiles.has(commandName)) {
-        console.log(`Command Loader: Hot-reloading command '${commandName}'`);
-        
-        // Update file info
-        const commandInfo = this.commandFiles.get(commandName);
-        commandInfo.lastModified = fs.statSync(filePath).mtime;
-        
-        // If command was loaded, reload it
-        if (commandInfo.loaded) {
-          await this.loadCommand(commandName);
-          this.stats.hotReloads++;
+        try {
+          console.log(`Command Loader: Hot-reloading command '${commandName}'`);
+
+          // Update file info. File bisa saja kehapus antara event dan stat, jadi dicek dulu.
+          const commandInfo = this.commandFiles.get(commandName);
+          commandInfo.lastModified = fs.statSync(filePath).mtime;
+
+          // If command was loaded, reload it
+          if (commandInfo.loaded) {
+            await this.loadCommand(commandName);
+            this.stats.hotReloads++;
+          }
+        } catch (error) {
+          if (error.code !== 'ENOENT') {
+            console.error(`Command Loader: Hot-reload '${commandName}' gagal:`, error.message);
+          }
         }
       }
     });
@@ -196,17 +205,24 @@ class CommandLoader {
     this.watcher.on('add', async (filePath) => {
       if (filePath.endsWith('.js')) {
         const commandName = path.basename(filePath, '.js');
-        
+        if (commandName === 'utils') return;
+
         if (!this.commandFiles.has(commandName)) {
-          console.log(`Command Loader: New command detected '${commandName}'`);
-          
-          this.commandFiles.set(commandName, {
-            filePath,
-            lastModified: fs.statSync(filePath).mtime,
-            loaded: false
-          });
-          
-          this.stats.totalCommands++;
+          try {
+            console.log(`Command Loader: New command detected '${commandName}'`);
+
+            this.commandFiles.set(commandName, {
+              filePath,
+              lastModified: fs.statSync(filePath).mtime,
+              loaded: false
+            });
+
+            this.stats.totalCommands++;
+          } catch (error) {
+            if (error.code !== 'ENOENT') {
+              console.error(`Command Loader: Gagal deteksi command baru '${commandName}':`, error.message);
+            }
+          }
         }
       }
     });

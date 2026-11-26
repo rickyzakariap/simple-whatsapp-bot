@@ -23,7 +23,10 @@ module.exports = {
     }
 
     try {
-      await sock.groupParticipantsUpdate(jid, [target], 'promote');
+      const [result] = await sock.groupParticipantsUpdate(jid, [target], 'promote');
+      if (String(result?.status) !== '200') {
+        return sock.sendMessage(jid, { text: `Could not promote ${mentionJid(target)} (status: ${result?.status || 'unknown'}).`, mentions: [target] }, { quoted: msg });
+      }
       await sock.sendMessage(jid, {
         text: `Promoted ${mentionJid(target)} to admin.`,
         mentions: [target]

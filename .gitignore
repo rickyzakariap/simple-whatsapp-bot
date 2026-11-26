@@ -57,3 +57,11 @@ public_backup/
 *.git
 *.svn
 *.hg
+
+# Backups of malformed runtime JSON may contain private data.
+*.json.corrupt-*
+
+# PM2 runtime logs
+logs/pm2-error.log
+logs/pm2-out.log
+pm2-*.log

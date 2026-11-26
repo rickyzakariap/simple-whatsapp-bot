@@ -90,9 +90,19 @@ function isValidUrl(url) {
  * @returns {boolean} True if valid YouTube URL
  */
 function isValidYouTubeUrl(url) {
-    if (!isValidUrl(url)) return false;
-    const ytRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
-    return ytRegex.test(url);
+    try {
+        const link = new URL(url);
+        if (link.protocol !== 'https:' || link.username || link.password || link.port) return false;
+        if (link.hostname === 'youtu.be') return /^\/[\w-]{11}\/?$/.test(link.pathname);
+        if (!['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(link.hostname)) return false;
+        if (link.pathname === '/watch') {
+            const ids = link.searchParams.getAll('v');
+            return ids.length === 1 && /^[\w-]{11}$/.test(ids[0]);
+        }
+        return /^\/(?:shorts|live)\/[\w-]{11}\/?$/.test(link.pathname);
+    } catch {
+        return false;
+    }
 }
 
 /**

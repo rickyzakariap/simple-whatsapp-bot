@@ -38,20 +38,10 @@ module.exports = {
       tempOutput = path.join(tempDir, `${unique}.${format}`);
       await fs.promises.writeFile(tempInput, buffer);
 
-      let sentFormat = format;
-      try {
-        await convert(tempInput, tempOutput, format);
-      } catch (error) {
-        if (format !== 'jpg') throw error;
-        sentFormat = 'png';
-        tempOutput = path.join(tempDir, `${unique}.png`);
-        await convert(tempInput, tempOutput, 'png');
-      }
-
-      const imageBuffer = await fs.promises.readFile(tempOutput);
+      await convert(tempInput, tempOutput, format);
       await sock.sendMessage(chatId, {
-        image: imageBuffer,
-        caption: `Here is your image.${sentFormat === 'png' && format === 'jpg' ? ' (JPG not supported, sent as PNG)' : ''}`
+        image: await fs.promises.readFile(tempOutput),
+        caption: 'Here is your image.'
       }, { quoted: msg });
     } catch (error) {
       console.error('toimg error:', error.message);
@@ -67,7 +57,9 @@ module.exports = {
 function convert(input, output, format) {
   return new Promise((resolve, reject) => {
     ffmpeg(input)
-      .toFormat(format)
+      .outputOptions('-frames:v', '1')
+      .videoCodec(format === 'jpg' ? 'mjpeg' : 'png')
+      .toFormat('image2')
       .save(output)
       .on('end', resolve)
       .on('error', reject);

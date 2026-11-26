@@ -51,7 +51,20 @@ class CacheManager {
       let data = defaultValue;
       if (fs.existsSync(absolutePath)) {
         const fileContent = fs.readFileSync(absolutePath, 'utf8');
-        data = JSON.parse(fileContent);
+        try {
+          data = JSON.parse(fileContent);
+        } catch (parseError) {
+          // File korup (misal bot mati pas nulis). Simpan salinannya biar datanya
+          // gak hilang permanen, lanjut pakai default kosong.
+          const backupPath = `${absolutePath}.corrupt-${Date.now()}`;
+          try {
+            fs.renameSync(absolutePath, backupPath);
+            console.error(`Cache: JSON korup di ${filePath}, disalin ke ${path.basename(backupPath)}`);
+          } catch {
+            console.error(`Cache: JSON korup di ${filePath}, gagal backup`);
+          }
+          data = defaultValue;
+        }
         this.stats.fileReads++;
       }
       
@@ -129,9 +142,12 @@ class CacheManager {
     }
     
     try {
-      const watcher = fs.watchFile(filePath, { interval: 1000 }, () => {
-        console.log(`Cache: File changed, invalidating cache for ${filePath}`);
-        this.cache.delete(cacheKey);
+      const watcher = fs.watchFile(filePath, { interval: 1000 }, (curr, prev) => {
+        // Sengaja tanpa log: bot sendiri nulis file tiap 2 detik, kalau di-log jadi spam.
+        // Kalau file diubah dari luar (misal diedit manual), cache dibuang biar kebaca ulang.
+        if (curr.mtimeMs !== prev.mtimeMs) {
+          this.cache.delete(cacheKey);
+        }
       });
       watcher.unref?.();
       
@@ -180,7 +196,11 @@ class CacheManager {
             fs.mkdirSync(dir, { recursive: true });
           }
           
-          fs.writeFileSync(filePath, JSON.stringify(writeData.data, null, 2));
+          // Tulis ke file sementara dulu baru di-rename, biar kalau bot mati di tengah
+          // nulis, file aslinya gak korup setengah jadi (rename itu atomik di filesystem).
+          const tempPath = `${filePath}.${process.pid}.tmp`;
+          fs.writeFileSync(tempPath, JSON.stringify(writeData.data, null, 2));
+          fs.renameSync(tempPath, filePath);
           this.stats.fileWrites++;
         } catch (error) {
           console.error(`Cache: Error writing file ${filePath}:`, error.message);

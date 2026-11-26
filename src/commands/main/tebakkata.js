@@ -20,7 +20,7 @@ module.exports = {
       if (timers[id]) clearTimeout(timers[id]);
       timers[id] = setTimeout(() => {
         delete games[id];
-        sock.sendMessage(id, { text: '⏰ Waktu habis! Game tebak kata berakhir.' });
+        sock.sendMessage(id, { text: '⏰ Waktu habis! Game tebak kata berakhir.' }).catch(() => {});
       }, config.games.tebakkata.timeout);
       return sock.sendMessage(id, { text: `Tebak kata: ${games[id].scramble} (${config.games.tebakkata.timeout / 1000} detik)` }, { quoted: msg });
     }
